@@ -16,31 +16,37 @@ import org.apache.pdfbox.tools.PDFText2HTML;
 
 
 public class worker {
-    public static void main(String[] args) {
-
-        //generateHTMLFromPDF("C:\\Users\\Amir\\Desktop\\distributed operating systems 1\\amir.pdf")
+    public static void main(String[] args){
+//        File file = new File();
+//        PDDocument document = null;
+//        try {
+//            document = Loader.loadPDF(file);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+        //convertPdfToHtml("amir.pdf",
+//                "C:\\Users\\Amir\\Desktop\\distributed operating systems 1",
+//                "C:\\Users\\Amir\\Desktop\\distributed operating systems 1",document
+//                );
     }
 
     public static String downloadPdf(String url) {
         String[] arrSplit=url.split("/",1);
         String name = arrSplit[arrSplit.length-1];
-        int CONNECT_TIMEOUT= 1000;
-        int READ_TIMEOUT =1000;
+//      int CONNECT_TIMEOUT= 1000;
+//      int READ_TIMEOUT =1000;
         try{
-            FileUtils.copyURLToFile(
-                    new URL(url),
-                    new File(name),
-                    CONNECT_TIMEOUT,
-                    READ_TIMEOUT);
-        } catch () {
+            FileUtils.copyURLToFile(new URL(url), new File(name));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
         return null; //source path name
     }
 
-    public static void convertPdf(String fileName,String sourcePath,String action){
+    public static void convertPdf(String fileName,String sourceFolder,String action){
 
         // load pdf to an object in order to convert it
-        File file = new File(sourcePath);
+        File file = new File(sourceFolder);
         PDDocument document = null;
         try {
             document = Loader.loadPDF(file);
@@ -53,7 +59,7 @@ public class worker {
                     convertPdfToImage(fileName,"","",document);
                     break;
                 case "ToHTML":
-                    //convertPdfToHtml(fileName,"","",document);
+                    convertPdfToHtml(fileName,"","",document);
                     break;
                 case "ToText":
                     convertPdfToText(fileName,"","",document);
@@ -66,7 +72,7 @@ public class worker {
 
 
 
-    public static int convertPdfToText(String fileName,String sourcePath ,String destinationPath,PDDocument document){
+    public static void convertPdfToText(String fileName, String sourcePath , String destinationPath, PDDocument document){
 
         try{
 
@@ -89,21 +95,25 @@ public class worker {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return 0;
     }
 
 
-    public static void convertPdfToHtml(String fileName,String sourcePath ,String destinationPath,PDDocument document) throws ParserConfigurationException, IOException {
-        PDFText2HTML parser = new PDFText2HTML();
-        Writer output = new PrintWriter(destinationPath+"\\"+fileName, "utf-8");
-        parser.writeText(document, output);
-        output.close();
-        if (document != null) {
-            document.close();
+    public static void convertPdfToHtml(String fileName,String sourceFolder ,String destinationFolder,PDDocument document){
+        try{
+            PDFText2HTML parser = new PDFText2HTML();
+            Writer output = new PrintWriter(destinationFolder+"\\"+fileName, "utf-8");
+            parser.writeText(document, output);
+            output.close();
+            if (document != null) {
+                document.close();
+            }
+        }catch (IOException e){
+            e.printStackTrace();
         }
+
     }
 
-    public static void convertPdfToImage(String fileName,String sourcePath ,String destinationPath,PDDocument document){
+    public static void convertPdfToImage(String fileName,String sourceFolder ,String destinationFolder,PDDocument document){
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         int page = 0;
         BufferedImage bim = null;
