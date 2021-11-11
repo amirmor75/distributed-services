@@ -16,17 +16,21 @@ import org.apache.pdfbox.tools.PDFText2HTML;
 
 public class worker {
     public static void main(String[] args){
-        //downloadPdf("");
+        /*
+        downloadPdf("http://scheinerman.net/judaism/pesach/haggadah.pdf","..");
         convertPdf("assignment1","..","ToText");
+        convertPdf("assignment1","..","ToHTML");
+        convertPdf("assignment1","..","ToImage");
+        */
     }
 
-    public static String downloadPdf(String url) {
-        String[] arrSplit=url.split("/",1);
+    public static String downloadPdf(String url,String destinationPath) {
+        String[] arrSplit=url.split("/",30); // 30 is arbitrary
         String name = arrSplit[arrSplit.length-1];
 //      int CONNECT_TIMEOUT= 1000;
 //      int READ_TIMEOUT =1000;
         try{
-            FileUtils.copyURLToFile(new URL(url), new File(name));
+            FileUtils.copyURLToFile(new URL(url), new File(destinationPath+"\\"+name));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -36,7 +40,7 @@ public class worker {
     public static void convertPdf(String fileName,String sourceFolder,String action){
 
         // load pdf to an object in order to convert it
-        File file = new File(sourceFolder+"\\"+fileName+".pdf");
+        File file = new File(fileName+".pdf");
         PDDocument document = null;
         try {
             document = Loader.loadPDF(file);
@@ -48,13 +52,13 @@ public class worker {
         //switch case
             switch (action) {
                 case "ToImage":
-                    convertPdfToImage(fileName,"","..",toConvert);
+                    convertPdfToImage(fileName,"..",toConvert);
                     break;
                 case "ToHTML":
-                    convertPdfToHtml(fileName,"","..",toConvert);
+                    convertPdfToHtml(fileName,"..",toConvert);
                     break;
                 case "ToText":
-                    convertPdfToText(fileName,"","..",toConvert);
+                    convertPdfToText(fileName,"..",toConvert);
                     break;
                 default:
                     throw new IllegalArgumentException();
@@ -66,7 +70,7 @@ public class worker {
 
 
 
-    public static void convertPdfToText(String fileName, String sourcePath , String destinationPath, PDDocument document){
+    public static void convertPdfToText(String fileName, String destinationPath, PDDocument document){
 
         try{
 
@@ -87,7 +91,7 @@ public class worker {
     }
 
 
-    public static void convertPdfToHtml(String fileName,String sourceFolder ,String destinationFolder,PDDocument document){
+    public static void convertPdfToHtml(String fileName,String destinationFolder,PDDocument document){
         try{
             PDFText2HTML parser = new PDFText2HTML();
             Writer output = new PrintWriter(destinationFolder+"\\"+fileName+".html", "utf-8");
@@ -102,7 +106,7 @@ public class worker {
 
     }
 
-    public static void convertPdfToImage(String fileName,String sourceFolder ,String destinationFolder,PDDocument document){
+    public static void convertPdfToImage(String fileName,String destinationFolder,PDDocument document){
         PDFRenderer pdfRenderer = new PDFRenderer(document);
         int page = 0;
         BufferedImage bim = null;
@@ -113,7 +117,7 @@ public class worker {
         }
 
         try {
-            ImageIOUtil.writeImage(bim, fileName + ".png", 300);
+            ImageIOUtil.writeImage(bim, destinationFolder+"\\"+fileName + ".png", 300);
         } catch (IOException e) {
             e.printStackTrace();
         }
