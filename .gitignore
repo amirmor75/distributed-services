@@ -2,6 +2,7 @@
 *.class
 .idea
 ass1Dos1.iml
+target
 
 # Log file
 *.log
