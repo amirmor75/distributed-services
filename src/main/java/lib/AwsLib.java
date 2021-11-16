@@ -1,3 +1,5 @@
+package lib;
+
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 

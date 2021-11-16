@@ -46,7 +46,7 @@ public class S3ObjectOperations {
     private static S3Client s3;
  
     public static void main(String[] args) throws IOException {
-        Region region = Region.US_WEST_2;
+        Region region = Region.US_EAST_1;
         s3 = S3Client.builder().region(region).build();
  
  
