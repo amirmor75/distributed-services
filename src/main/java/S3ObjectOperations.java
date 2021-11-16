@@ -112,7 +112,7 @@ public class S3ObjectOperations {
         s3.getObject(GetObjectRequest.builder().bucket(bucket).key(key).build(),
                 ResponseTransformer.toFile(Paths.get("multiPartKey")));
         // snippet-end:[s3.java2.s3_object_operations.download]
- 
+
         // Delete Object
         DeleteObjectRequest deleteObjectRequest = DeleteObjectRequest.builder().bucket(bucket).key(key).build();
         s3.deleteObject(deleteObjectRequest);

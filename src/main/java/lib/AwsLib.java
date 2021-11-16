@@ -19,7 +19,7 @@ import java.util.Random;
 
 public class AwsLib {
 
-    public static String CreateAndGetQueueUrlFromName (SqsClient sqs, String queueName) {
+    public static String sqsCreateAndGetQueueUrlFromName (SqsClient sqs, String queueName) {
 
         try {
             CreateQueueRequest request = CreateQueueRequest.builder()
@@ -36,13 +36,13 @@ public class AwsLib {
         return sqs.getQueueUrl(getQueueRequest).queueUrl();
     }
 
-    public static List<Message> getMessagesFromQueue(SqsClient sqs, String queueUrl) {
+    public static List<Message> sqsGetMessagesFromQueue(SqsClient sqs, String queueUrl) {
         ReceiveMessageRequest receiveRequest = ReceiveMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .build();
         return sqs.receiveMessage(receiveRequest).messages();
     }
-    public static void sendSqsMessage(SqsClient sqs, String queueUrl,String message){
+    public static void sqsSendMessage(SqsClient sqs, String queueUrl,String message){
         SendMessageRequest send_msg_request = SendMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .messageBody(message)
@@ -50,10 +50,29 @@ public class AwsLib {
                 .build();
         sqs.sendMessage(send_msg_request);
     }
+    public static void sqsSendMessages(SqsClient sqs, String queueUrl,List<String> messages){
+        for (String body: messages) {
+            SendMessageRequest send_msg_request = SendMessageRequest.builder()
+                    .queueUrl(queueUrl)
+                    .messageBody(body)
+                    .delaySeconds(5)
+                    .build();
+            sqs.sendMessage(send_msg_request);
+        }
+    }
 
-    public static void createAndUploadS3Bucket(S3Client s3, String bucketName, File file){
+    public static void sqsDeleteMessages(SqsClient sqs, String queueUrl,List<Message> messages){
+        for (Message m : messages) {
+            DeleteMessageRequest deleteRequest = DeleteMessageRequest.builder()
+                    .queueUrl(queueUrl)
+                    .receiptHandle(m.receiptHandle())
+                    .build();
+            sqs.deleteMessage(deleteRequest);
+        }
+    }
+
+    public static void createAndUploadS3Bucket(S3Client s3, String bucketName,String key, File file){
         software.amazon.awssdk.regions.Region region = Region.US_EAST_1;
-        String key = "key"; //TODO
         s3.createBucket(CreateBucketRequest
                 .builder()
                 .bucket(bucketName)
