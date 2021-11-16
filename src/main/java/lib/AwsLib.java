@@ -69,4 +69,8 @@ public class AwsLib {
                 RequestBody.fromFile(file));
     }
 
+    public static void downloadS3Bucket(S3Client s3, String bucketName, File file){
+
+    }
+
 }
