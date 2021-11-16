@@ -22,8 +22,6 @@ public class SendReceiveMessages
     public static void main(String[] args)
     {
        SqsClient sqs = SqsClient.builder().region(Region.US_WEST_2).build();
- 
- 
         try {
            CreateQueueRequest request = CreateQueueRequest.builder()
                  .queueName(QUEUE_NAME)
@@ -31,7 +29,6 @@ public class SendReceiveMessages
             CreateQueueResponse create_result = sqs.createQueue(request);
         } catch (QueueNameExistsException e) {
            throw e;
- 
         }
  
         GetQueueUrlRequest getQueueRequest = GetQueueUrlRequest.builder()

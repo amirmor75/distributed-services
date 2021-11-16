@@ -48,10 +48,10 @@ public class CreateInstance {
 //            System.out.println(USAGE);
 //            System.exit(1);
 //        }
- 
+
         String name = /*args[0]*/"a";
         String amiId = /*args[1]*/ "ami-0133407e358cc1af0";
- 
+
         // snippet-start:[ec2.java2.create_instance.main]
         Ec2Client ec2 = Ec2Client.create();
  
@@ -61,7 +61,7 @@ public class CreateInstance {
                 .maxCount(1)
                 .minCount(1)
                 .userData(Base64.getEncoder().encodeToString(
-                        /*your USER DATA script string*/"".getBytes()))
+                        /*your USER DATA script string*/"nop".getBytes()))
                 .build();
  
         RunInstancesResponse response = ec2.runInstances(runRequest);
