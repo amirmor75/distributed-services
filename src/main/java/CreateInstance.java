@@ -44,13 +44,13 @@ public class CreateInstance {
                         "Both values can be obtained from the AWS Console\n" +
                         "Ex: CreateInstance <instance-name> <ami-image-id>\n";
  
-        if (args.length != 2) {
-            System.out.println(USAGE);
-            System.exit(1);
-        }
+//        if (args.length != 2) {
+//            System.out.println(USAGE);
+//            System.exit(1);
+//        }
  
-        String name = args[0];
-        String amiId = args[1];
+        String name = /*args[0]*/"a";
+        String amiId = /*args[1]*/ "ami-0d1a4d53e40abecc4";
  
         // snippet-start:[ec2.java2.create_instance.main]
         Ec2Client ec2 = Ec2Client.create();
@@ -60,7 +60,8 @@ public class CreateInstance {
                 .imageId(amiId)
                 .maxCount(1)
                 .minCount(1)
-                .userData(Base64.getEncoder().encodeToString(/*your USER DATA script string*/"nullnullnullnull".getBytes()))
+                .userData(Base64.getEncoder().encodeToString(
+                        /*your USER DATA script string*/"".getBytes()))
                 .build();
  
         RunInstancesResponse response = ec2.runInstances(runRequest);

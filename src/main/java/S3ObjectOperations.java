@@ -134,7 +134,6 @@ public class S3ObjectOperations {
                                 .locationConstraint(region.id())
                                 .build())
                 .build());
- 
         System.out.println(bucket);
     }
  
