@@ -1,9 +1,21 @@
+
 package lib;
 
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CreateBucketConfiguration;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Random;
 
 public class AwsLib {
 
@@ -38,4 +50,23 @@ public class AwsLib {
                 .build();
         sqs.sendMessage(send_msg_request);
     }
+
+    public static void createAndUploadS3Bucket(S3Client s3, String bucketName, File file){
+        software.amazon.awssdk.regions.Region region = Region.US_EAST_1;
+        String key = "key"; //TODO
+        s3.createBucket(CreateBucketRequest
+                .builder()
+                .bucket(bucketName)
+                .createBucketConfiguration(
+                        CreateBucketConfiguration.builder()
+                                .locationConstraint(region.id())
+                                .build())
+                .build());
+
+        // Put Object
+        s3.putObject(PutObjectRequest.builder().bucket(bucketName).key(key)
+                        .build(),
+                RequestBody.fromFile(file));
+    }
+
 }

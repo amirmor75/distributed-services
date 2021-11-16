@@ -51,8 +51,8 @@ public class EC2InstanceCreator {
         }*/
 
         String name = /*args[0]*/"amir";
-        String amiId = /*args[1]*/"ami-076515f20540e6e0b";
-        Region region = Region.US_WEST_2;
+        String amiId = /*args[1]*/"ami-0e011417bd70948da";
+        Region region = Region.US_EAST_1;
         Ec2Client ec2 = Ec2Client.builder()
                 .region(region)
                 .build();

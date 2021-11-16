@@ -48,10 +48,11 @@ public class CreateInstance {
 //            System.out.println(USAGE);
 //            System.exit(1);
 //        }
+
  
         String name = /*args[0]*/"amir12345678910amir";
         String amiId = /*args[1]*/ "ami-0279c3b3186e54acd";
- 
+
         // snippet-start:[ec2.java2.create_instance.main]
         Ec2Client ec2 = Ec2Client.create();
  
