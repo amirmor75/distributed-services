@@ -50,7 +50,7 @@ public class CreateInstance {
 //        }
  
         String name = /*args[0]*/"a";
-        String amiId = /*args[1]*/ "ami-0d1a4d53e40abecc4";
+        String amiId = /*args[1]*/ "ami-0133407e358cc1af0";
  
         // snippet-start:[ec2.java2.create_instance.main]
         Ec2Client ec2 = Ec2Client.create();
