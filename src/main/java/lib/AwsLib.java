@@ -88,8 +88,10 @@ public class AwsLib {
                 RequestBody.fromFile(file));
     }
 
-    public static void downloadS3Bucket(S3Client s3, String bucketName, File file){
+    public static String getUrlOfPdfByUrlOfS3(String S3Url){
+    }
 
+    public static File downloadS3File(S3Client s3, String bucketName,String urlFile){
     }
 
 }

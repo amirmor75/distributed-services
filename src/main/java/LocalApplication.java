@@ -4,6 +4,7 @@ import lib.AwsLib;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
+import software.amazon.awssdk.services.sqs.model.Message;
 
 
 import java.awt.*;
@@ -36,26 +37,58 @@ public class LocalApplication {
         AwsLib.sqsSendMessage(sqs,queueUrl,BUCKET_NAME);
         //Checks an SQS queue for a message indicating the process is done and the response (the
         //summary file) is available on S3.
-
-        //Creates an html file representing the results
-       // htmlFileResult(operations,linkInputFile,linkOutputFile);
+        List<String> results;
+        if(searchForConfirmMessageInSQS(sqs,queueUrl)){
+            try {
+                results = downloadSummaryFileFromS3(s3,BUCKET_NAME,"");
+                htmlFileResult(results); //Creates an html file representing the results
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
-    private static void htmlFileResult(List<String> operations, List<String> linkInputFile, List<String> linkOutputFile) throws IOException {
+    private static boolean searchForConfirmMessageInSQS(SqsClient sqs, String queueUrl){
+        List<Message> messages = AwsLib.getMessagesFromQueue(sqs,queueUrl);
+        int i = 0;
+        while(i < messages.size()){
+            if(messages.get(i).body().equals("resultReady")){
+                return true;
+            }
+            i++;
+        }
+        return false;
+    }
+
+    private static List<String> downloadSummaryFileFromS3(S3Client s3, String bucketName,String urlFile) throws IOException {
+        File file = AwsLib.downloadS3File(s3,bucketName,urlFile);
+        LinkedList<String> listOperationUrlResult = new LinkedList<>();
+        String splitarray[];
+        BufferedReader readbuffer = new BufferedReader(new FileReader(file));
+        String strRead;
+        String operation;
+        String pdfUrlInputFile;
+        String pdfUrlInS3OutputFile;
+        String pdfUrlOutputFile;
+        while ((strRead=readbuffer.readLine())!=null){
+            splitarray = strRead.split("\t");
+            operation = splitarray[0];
+            pdfUrlInputFile = splitarray[1];
+            pdfUrlInS3OutputFile = splitarray[2];
+            pdfUrlOutputFile = AwsLib.getUrlOfPdfByUrlOfS3(pdfUrlInS3OutputFile);
+            listOperationUrlResult.add(operation + ": " + pdfUrlInputFile + " " + pdfUrlOutputFile);
+        }
+        return listOperationUrlResult;
+    }
+
+    private static void htmlFileResult(List<String> results) throws IOException {
         File f = new File("result.htm");
         BufferedWriter bw = new BufferedWriter(new FileWriter(f));
         bw.write("<html><body><h1>.........</h1>");
-        int operationsSize = operations.size();
-        int linkInputFileSize = linkInputFile.size();
-        int linkOutputFileSize = linkOutputFile.size();
-        int op = 0;
-        int li = 0;
-        int lo = 0;
-        while (op < operationsSize && li < linkInputFileSize && lo < linkOutputFileSize){
-            bw.write("<p>" + operations.get(op) + ": " + linkInputFile.get(li) + " " + linkOutputFile.get(lo) + "</p>");
-            op++;
-            li++;
-            lo++;
+        int i = 0;
+        while (i < results.size()){
+            bw.write("<p>" + results.get(i) + "</p>");
+            i++;
         }
         bw.write("</body></html>");
         bw.close();
