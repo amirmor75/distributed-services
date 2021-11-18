@@ -1,21 +1,19 @@
 
 package lib;
 
+import org.apache.commons.io.IOUtils;
+import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.CreateBucketConfiguration;
-import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.*;
 
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.io.*;
+
 import java.util.List;
-import java.util.Random;
 
 public class AwsLib {
 
@@ -89,11 +87,51 @@ public class AwsLib {
     }
 
     public static String getUrlOfPdfByUrlOfS3(String S3Url){
+
+        /*URI fileToBeDownloaded = null;
+        try {
+            fileToBeDownloaded = new URI(S3Url);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+        AmazonS3URI s3URI = new AmazonS3URI(fileToBeDownloaded);
+
+        S3Object s3Object = s3Client.getObject(s3URI.getBucket(), s3URI.getKey());
+
+
+        URI uri = null;
+        try {
+            uri = new URI(S3Url);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+        String bucketName = uri.getHost();*/
         return null;
     }
 
-    public static File downloadS3File(S3Client s3, String bucketName,String urlFile){
-        return null;
+    public static File downloadS3File(S3Client s3, String bucketName, String fileName){
+
+        GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                .bucket(bucketName)
+                .key(fileName)
+                .build();
+        ResponseInputStream<GetObjectResponse> responseInputStream = s3.getObject(getObjectRequest);
+        File file = new File(fileName);
+        try {
+            InputStream inputStream = new ByteArrayInputStream(responseInputStream.readAllBytes());
+            try(OutputStream outputStream = new FileOutputStream(file)){
+                IOUtils.copy(inputStream, outputStream);
+            } catch (FileNotFoundException e) {
+                // handle exception here
+            } catch (IOException e) {
+                // handle exception here
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return file;
     }
+
+
 
 }

@@ -49,7 +49,7 @@ public class LocalApplication {
     }
 
     private static boolean searchForConfirmMessageInSQS(SqsClient sqs, String queueUrl){
-        List<Message> messages = AwsLib.getMessagesFromQueue(sqs,queueUrl);
+        List<Message> messages = AwsLib.sqsGetMessagesFromQueue(sqs,queueUrl);
         int i = 0;
         while(i < messages.size()){
             if(messages.get(i).body().equals("resultReady")){
