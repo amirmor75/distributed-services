@@ -30,7 +30,7 @@ public class LocalApplication {
         File file = new File("input-sample-1.txt");
 
         //Uploads the file to S3
-        AwsLib.createAndUploadS3Bucket(s3,BUCKET_NAME,"key",file);
+        AwsLib.createAndUploadS3Bucket(s3,BUCKET_NAME,"key????",file);
         //Get url of a created sqs
         String queueUrl = AwsLib.sqsCreateAndGetQueueUrlFromName(sqs,QUEUE_NAME);
         //Sends a message to an SQS queue, stating the location of the file on S3 (=BUCKET_NAME)
@@ -40,7 +40,7 @@ public class LocalApplication {
         List<String> results;
         if(searchForConfirmMessageInSQS(sqs,queueUrl)){
             try {
-                results = downloadSummaryFileFromS3(s3,BUCKET_NAME,"");
+                results = downloadSummaryFileFromS3(s3,BUCKET_NAME,"summery");
                 htmlFileResult(results); //Creates an html file representing the results
             } catch (IOException e) {
                 e.printStackTrace();
@@ -49,7 +49,7 @@ public class LocalApplication {
     }
 
     private static boolean searchForConfirmMessageInSQS(SqsClient sqs, String queueUrl){
-        List<Message> messages = AwsLib.getMessagesFromQueue(sqs,queueUrl);
+        List<Message> messages = AwsLib.sqsGetMessagesFromQueue(sqs,queueUrl);
         int i = 0;
         while(i < messages.size()){
             if(messages.get(i).body().equals("resultReady")){
@@ -60,8 +60,8 @@ public class LocalApplication {
         return false;
     }
 
-    private static List<String> downloadSummaryFileFromS3(S3Client s3, String bucketName,String urlFile) throws IOException {
-        File file = AwsLib.downloadS3File(s3,bucketName,urlFile);
+    private static List<String> downloadSummaryFileFromS3(S3Client s3, String bucketName,String fileName) throws IOException {
+        File file = AwsLib.downloadS3File(s3,bucketName,fileName);
         LinkedList<String> listOperationUrlResult = new LinkedList<>();
         String splitarray[];
         BufferedReader readbuffer = new BufferedReader(new FileReader(file));
