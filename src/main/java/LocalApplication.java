@@ -20,7 +20,7 @@ public class LocalApplication {
     private static final String BUCKET_NAME= "localApplication_special_s3Bucket";
     private static final String QUEUE_NAME= "manager_special_sqs";
     public static void main(String[] args) throws IOException {
-        parseInputFile("input-sample-1.txt");
+        //parseInputFile("input-sample-1.txt"); redundent shelly!
         run();
     }
 
@@ -28,12 +28,13 @@ public class LocalApplication {
         S3Client s3 = S3Client.builder().region(Region.US_EAST_1).build();
         SqsClient sqs = SqsClient.builder().region(Region.US_EAST_1).build();
         File file = new File("input-sample-1.txt");
+
         //Uploads the file to S3
-        AwsLib.createAndUploadS3Bucket(s3,BUCKET_NAME,file);
+        AwsLib.createAndUploadS3Bucket(s3,BUCKET_NAME,"key",file);
         //Get url of a created sqs
-        String queueUrl = AwsLib.CreateAndGetQueueUrlFromName(sqs,QUEUE_NAME);
+        String queueUrl = AwsLib.sqsCreateAndGetQueueUrlFromName(sqs,QUEUE_NAME);
         //Sends a message to an SQS queue, stating the location of the file on S3 (=BUCKET_NAME)
-        AwsLib.sendSqsMessage(sqs,queueUrl,BUCKET_NAME);
+        AwsLib.sqsSendMessage(sqs,queueUrl,BUCKET_NAME);
         //Checks an SQS queue for a message indicating the process is done and the response (the
         //summary file) is available on S3.
         List<String> results;
@@ -95,7 +96,7 @@ public class LocalApplication {
         Desktop.getDesktop().browse(f.toURI());
     }
 
-
+/*
     private static void parseInputFile(String fileName) throws IOException {
         LinkedList<MessageOperationUrl> listOperationUrl = new LinkedList<>();
         String splitarray[];
@@ -112,4 +113,6 @@ public class LocalApplication {
             listOperationUrl.add(messageOperationUrl);
         }
     }
+
+ */
 }
