@@ -89,9 +89,11 @@ public class AwsLib {
     }
 
     public static String getUrlOfPdfByUrlOfS3(String S3Url){
+        return null;
     }
 
     public static File downloadS3File(S3Client s3, String bucketName,String urlFile){
+        return null;
     }
 
 }

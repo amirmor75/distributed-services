@@ -3,6 +3,11 @@ package manager;
 import lib.AwsLib;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.Ec2Exception;
+import software.amazon.awssdk.services.ec2.model.InstanceStateChange;
+import software.amazon.awssdk.services.ec2.model.TerminateInstancesRequest;
+import software.amazon.awssdk.services.ec2.model.TerminateInstancesResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import java.io.BufferedReader;
@@ -35,20 +40,21 @@ public class Manager {
         String mangerQueueName = "manager_special_sqs";
         String workersQueueName = "workers_queue";
         String bucketName = "localApplication_special_s3Bucket";
-        String KEY = "key";
+        String key = "key";
         SqsClient sqs = SqsClient.builder().region(region).build();
         S3Client s3 = S3Client.builder().region(region).build();
+        Ec2Client ec2 = Ec2Client.builder()
+                .region(region)
+                .build();
+        String mangerQueueUrl = AwsLib.sqsCreateAndGetQueueUrlFromName(sqs, mangerQueueName);
+        String workersQueueUrl = AwsLib.sqsCreateAndGetQueueUrlFromName(sqs, workersQueueName);
+
+
         // download the input file from S3
-        AwsLib.downloadS3Bucket();
-        File inputFile = new File("./input");
-        Region region = Region.US_EAST_1;
-        S3Client s3 = S3Client.builder().region(region).build();
-        s3.getObject(GetObjectRequest.builder().bucket(bucketName).key(KEY).build(),
-                ResponseTransformer.toFile(inputFile));
+        File inputFile = AwsLib.downloadS3File(s3,bucketName,"input");
 
         // Creates an SQS message for each URL in the input file together with the operation
         //that should be performed on it.
-        String workersQueueUrl = AwsLib.sqsCreateAndGetQueueUrlFromName(sqs, workersQueueName);
         List<String> messageBodies = parseInputFile("input");
         sqsSendMessages(sqs,workersQueueUrl,messageBodies);
 
@@ -56,11 +62,10 @@ public class Manager {
         //The manager should create a worker for every n messages, if there are no
         //running workers.
 
-        int workersPoolSize= messageBodies.size()/n;
+        int workersPoolSize = messageBodies.size()/n == 0 ? 1 : messageBodies.size()/n;
         for (int i = 0; i < workersPoolSize; i++) {
             createEc2Instance("myEc2Instance1982754928173"+i);// complex so name is unique
             // make the instances do work now somehow
-
         }
 
         //Manager reads all Workers' messages from SQS and creates one summary file, once all URLs
@@ -73,15 +78,16 @@ public class Manager {
             } catch (InterruptedException ignored){
             }
         }
-
-
+        //now have read all workers results
+        File summery = createSummeryFile(managerQueueMessages);
+        //kill all instances
+        terminateEC2Instances(ec2,new LinkedList<>());// what to do with ids???????????
 
         // Manager uploads the summary file to S3.
-        AwsLib.createAndUploadS3Bucket();
-
+        AwsLib.createAndUploadS3Bucket(s3,bucketName,key,summery);
 
         // Manager posts an SQS message about the summary file
-
+        AwsLib.sqsSendMessage(sqs,mangerQueueUrl,"resultReady");
     }
 
     private List<String> parseInputFile(String fileName) {
@@ -100,9 +106,39 @@ public class Manager {
         return listOperationUrl;
     }
 
+    //todo
+    private void createEc2Instance(String instanceName){
 
-    public static void createEc2Instance(String instanceName){
+    }
+    private void terminateEC2Instance( Ec2Client ec2, String instanceID) {
 
+        try{
+            TerminateInstancesRequest ti = TerminateInstancesRequest.builder()
+                    .instanceIds(instanceID)
+                    .build();
+
+            TerminateInstancesResponse response = ec2.terminateInstances(ti);
+            List<InstanceStateChange> list = response.terminatingInstances();
+
+            for (int i = 0; i < list.size(); i++) {
+                InstanceStateChange sc = (list.get(i));
+                System.out.println("The ID of the terminated instance is "+sc.instanceId());
+            }
+        } catch (Ec2Exception e) {
+            System.err.println(e.awsErrorDetails().errorMessage());
+            System.exit(1);
+        }
+    }
+    private void terminateEC2Instances(Ec2Client ec2,List<String> ids){
+        for (String id : ids){
+            terminateEC2Instance(ec2,id);
+        }
+    }
+
+
+    //todo
+    private File createSummeryFile(List<Message> messages){
+        return null;
     }
 
 }
