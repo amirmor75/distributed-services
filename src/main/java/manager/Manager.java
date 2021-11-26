@@ -4,15 +4,12 @@ import lib.AwsLib;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.Ec2Exception;
-import software.amazon.awssdk.services.ec2.model.InstanceStateChange;
-import software.amazon.awssdk.services.ec2.model.TerminateInstancesRequest;
-import software.amazon.awssdk.services.ec2.model.TerminateInstancesResponse;
+import software.amazon.awssdk.services.ec2.model.*;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.sqs.SqsClient;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+
+import java.io.*;
+import java.util.Base64;
 import java.util.LinkedList;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.model.Message;
@@ -79,7 +76,7 @@ public class Manager {
             }
         }
         //now have read all workers results
-        File summery = createSummeryFile(managerQueueMessages);
+        File summery = createSummaryFile(managerQueueMessages);
         //kill all instances
         terminateEC2Instances(ec2,new LinkedList<>());// what to do with ids???????????
 
@@ -108,7 +105,47 @@ public class Manager {
 
     //todo
     private void createEc2Instance(String instanceName){
+        String name = instanceName;
+        String amiId = "ami-0279c3b3186e54acd";
 
+        // snippet-start:[ec2.java2.create_instance.main]
+        Ec2Client ec2 = Ec2Client.create();
+
+        RunInstancesRequest runRequest = RunInstancesRequest.builder()
+                .instanceType(InstanceType.T1_MICRO)
+                .imageId(amiId)
+                .maxCount(1)
+                .minCount(1)
+                .userData(Base64.getEncoder().encodeToString(
+                        /*your USER DATA script string*/"nop".getBytes()))
+                .build();
+
+        RunInstancesResponse response = ec2.runInstances(runRequest);
+
+        String instanceId = response.instances().get(0).instanceId();
+
+        Tag tag = Tag.builder()
+                .key("Name")
+                .value(name)
+                .build();
+
+        CreateTagsRequest tagRequest = CreateTagsRequest.builder()
+                .resources(instanceId)
+                .tags(tag)
+                .build();
+
+        try {
+            ec2.createTags(tagRequest);
+            System.out.printf(
+                    "Successfully started EC2 instance %s based on AMI %s",
+                    instanceId, amiId);
+
+        } catch (Ec2Exception e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
+        // snippet-end:[ec2.java2.create_instance.main]
+        System.out.println("Done!");
     }
     private void terminateEC2Instance( Ec2Client ec2, String instanceID) {
 
@@ -134,11 +171,21 @@ public class Manager {
             terminateEC2Instance(ec2,id);
         }
     }
-
-
-    //todo
-    private File createSummeryFile(List<Message> messages){
-        return null;
+    private File createSummaryFile(List<Message> messages){
+        // <action> \t <pdf url input file> \t <pdf url on s3>
+        File summary = new File("summaryFile");
+        try {
+            BufferedWriter bw = new BufferedWriter(new FileWriter(summary));
+            int i = 0;
+            while (i < messages.size()){
+                bw.write(messages.get(i).body());
+                i++;
+            }
+            bw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return summary;
     }
 
-}
+    }
