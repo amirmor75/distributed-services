@@ -32,7 +32,7 @@ public class LocalApplication {
         //Checks if a Manager node is active on the EC2 cloud. If it is not, the application will start the
         //manager node.
         //checkManagerNodeActive() //TODO
-        //Uploads the file to S3 TODO:WHAT IS THE KEY
+        //Uploads the file to S3 TODO:WHAT IS THE KEY. awwwww.... i shall tell you when the time is right.
         AwsLib.createAndUploadS3Bucket(s3,BUCKET_NAME,"key",file);
         //Get url of a created sqs
         String managerQueueUrl = AwsLib.sqsCreateAndGetQueueUrlFromName(sqs,QUEUE_NAME);
@@ -60,6 +60,7 @@ public class LocalApplication {
         Ec2Client ec2 = Ec2Client.builder()
                 .region(Region.US_EAST_1)
                 .build();
+        return true;
     }
 
     private static boolean terminateMode(String[] args) {

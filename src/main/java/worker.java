@@ -16,12 +16,21 @@ import org.apache.pdfbox.tools.PDFText2HTML;
 
 public class worker {
     public static void main(String[] args){
-        /*
-        downloadPdf("http://scheinerman.net/judaism/pesach/haggadah.pdf","..");
-        convertPdf("assignment1","..","ToText");
-        convertPdf("assignment1","..","ToHTML");
-        convertPdf("assignment1","..","ToImage");
-        */
+        while (true) {
+            //▪ Get a message from an SQS queue.
+
+            //▪ Download the PDF file indicated in the message.
+
+            //▪ Perform the operation requested on the file.
+
+            //▪ Upload the resulting output file to S3.
+
+            //▪ Put a message in an SQS queue indicating the original URL of the PDF, the S3 url of the new
+
+            // image file, and the operation that was performed.
+
+            //▪ remove the processed message from the SQS queue.
+        }
     }
 
     public static String downloadPdf(String url,String destinationPath) {
