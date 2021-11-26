@@ -2,6 +2,7 @@
 
 import lib.AwsLib;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.sqs.SqsClient;
 import software.amazon.awssdk.services.sqs.model.Message;
@@ -21,31 +22,48 @@ public class LocalApplication {
     private static final String QUEUE_NAME= "manager_special_sqs";
     public static void main(String[] args) throws IOException {
         //parseInputFile("input-sample-1.txt"); redundent shelly!
-        run();
+        run(args);
     }
 
-    private static void run() {
+    private static void run(String[] args) {
         S3Client s3 = S3Client.builder().region(Region.US_EAST_1).build();
         SqsClient sqs = SqsClient.builder().region(Region.US_EAST_1).build();
         File file = new File("input-sample-1.txt");
-
-        //Uploads the file to S3
+        //Checks if a Manager node is active on the EC2 cloud. If it is not, the application will start the
+        //manager node.
+        //checkManagerNodeActive() //TODO
+        //Uploads the file to S3 TODO:WHAT IS THE KEY
         AwsLib.createAndUploadS3Bucket(s3,BUCKET_NAME,"key",file);
         //Get url of a created sqs
-        String queueUrl = AwsLib.sqsCreateAndGetQueueUrlFromName(sqs,QUEUE_NAME);
+        String managerQueueUrl = AwsLib.sqsCreateAndGetQueueUrlFromName(sqs,QUEUE_NAME);
         //Sends a message to an SQS queue, stating the location of the file on S3 (=BUCKET_NAME)
-        AwsLib.sqsSendMessage(sqs,queueUrl,BUCKET_NAME);
+        AwsLib.sqsSendMessage(sqs,managerQueueUrl,"locationInputFile:\t"+BUCKET_NAME);
         //Checks an SQS queue for a message indicating the process is done and the response (the
         //summary file) is available on S3.
         List<String> results;
-        if(searchForConfirmMessageInSQS(sqs,queueUrl)){
+        if(searchForConfirmMessageInSQS(sqs,managerQueueUrl)){
             try {
-                results = downloadSummaryFileFromS3(s3,BUCKET_NAME,"");
+                results = downloadSummaryFileFromS3(s3,BUCKET_NAME,"summary");
                 htmlFileResult(results); //Creates an html file representing the results
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+        //In case of terminate mode (as defined by the command-line argument), sends a termination
+        //message to the Manager.
+        if(terminateMode(args)){
+            AwsLib.sqsSendMessage(sqs,managerQueueUrl,"terminateMode"); //sends to the same queue = QUEUE_NAME
+        }
+    }
+
+    private static boolean checkManagerNodeActive(){ //TODO
+        Ec2Client ec2 = Ec2Client.builder()
+                .region(Region.US_EAST_1)
+                .build();
+    }
+
+    private static boolean terminateMode(String[] args) {
+        return args.length == 3;
     }
 
     private static boolean searchForConfirmMessageInSQS(SqsClient sqs, String queueUrl){
@@ -60,8 +78,8 @@ public class LocalApplication {
         return false;
     }
 
-    private static List<String> downloadSummaryFileFromS3(S3Client s3, String bucketName,String urlFile) throws IOException {
-        File file = AwsLib.downloadS3File(s3,bucketName,urlFile);
+    private static List<String> downloadSummaryFileFromS3(S3Client s3, String bucketName,String filename) throws IOException {
+        File file = AwsLib.downloadS3File(s3,bucketName,filename);
         LinkedList<String> listOperationUrlResult = new LinkedList<>();
         String splitarray[];
         BufferedReader readbuffer = new BufferedReader(new FileReader(file));
@@ -75,14 +93,14 @@ public class LocalApplication {
             operation = splitarray[0];
             pdfUrlInputFile = splitarray[1];
             pdfUrlInS3OutputFile = splitarray[2];
-            pdfUrlOutputFile = AwsLib.getUrlOfPdfByUrlOfS3(pdfUrlInS3OutputFile);
+            pdfUrlOutputFile = AwsLib.getUrlOfPdfByUrlOfS3(s3,operation,pdfUrlInputFile,pdfUrlInS3OutputFile);
             listOperationUrlResult.add(operation + ": " + pdfUrlInputFile + " " + pdfUrlOutputFile);
         }
         return listOperationUrlResult;
     }
 
     private static void htmlFileResult(List<String> results) throws IOException {
-        File f = new File("result.htm");
+        File f = new File("result.html");
         BufferedWriter bw = new BufferedWriter(new FileWriter(f));
         bw.write("<html><body><h1>.........</h1>");
         int i = 0;
