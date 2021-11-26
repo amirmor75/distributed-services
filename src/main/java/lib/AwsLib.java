@@ -4,6 +4,7 @@ package lib;
 import org.apache.commons.io.IOUtils;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
@@ -13,6 +14,9 @@ import software.amazon.awssdk.services.sqs.model.*;
 
 import java.io.*;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.util.List;
 
 public class AwsLib {
@@ -86,27 +90,35 @@ public class AwsLib {
                 RequestBody.fromFile(file));
     }
 
-    public static String getUrlOfPdfByUrlOfS3(String S3Url){
-
-        /*URI fileToBeDownloaded = null;
-        try {
-            fileToBeDownloaded = new URI(S3Url);
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
+    //Assume that S3Url looks like: bucket /t key
+    public static String getUrlOfPdfByUrlOfS3(S3Client s3, String operation, String pdfUrlInputFile, String S3Url){
+        String[] arrSplit=pdfUrlInputFile.split("/",30); // 30 is arbitrary
+        String nameOfTheFileWithDot = arrSplit[arrSplit.length-1]; //it looks like shelly.pdf
+        String[] arrSplit2=nameOfTheFileWithDot.split(".",30); // 30 is arbitrary
+        String nameOfTheFile = arrSplit2[0]; //it looks like shelly (without .pdf)
+        switch (operation) {
+            case "ToImage":
+                nameOfTheFile = nameOfTheFile + ".png";
+                break;
+            case "ToHTML":
+                nameOfTheFile = nameOfTheFile + ".html";
+                break;
+            case "ToText":
+                nameOfTheFile = nameOfTheFile + ".txt";
+                break;
+            default:
+                throw new IllegalArgumentException();
         }
-        AmazonS3URI s3URI = new AmazonS3URI(fileToBeDownloaded);
-
-        S3Object s3Object = s3Client.getObject(s3URI.getBucket(), s3URI.getKey());
-
-
-        URI uri = null;
-        try {
-            uri = new URI(S3Url);
-        } catch (URISyntaxException e) {
-            e.printStackTrace();
-        }
-        String bucketName = uri.getHost();*/
-        return null;
+        String path = "../"+nameOfTheFile;
+        String splitarray[];
+        String bucket;
+        String key;
+        splitarray = S3Url.split("\t");
+        bucket = splitarray[0];
+        key = splitarray[1];
+        s3.getObject(GetObjectRequest.builder().bucket(bucket).key(key).build(),
+                ResponseTransformer.toFile(Paths.get(path)));
+        return path;
     }
 
     public static File downloadS3File(S3Client s3, String bucketName, String fileName){
