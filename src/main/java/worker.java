@@ -1,4 +1,5 @@
 import com.amazonaws.services.sqs.model.Message;
+import lib.AwsBundle;
 import org.apache.commons.io.FileUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;

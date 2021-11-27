@@ -72,6 +72,14 @@ public class AwsLib {
             sqs.deleteMessage(deleteRequest);
         }
     }
+    public static void sqsDeleteMessage(SqsClient sqs, String queueUrl,Message m){
+            DeleteMessageRequest deleteRequest = DeleteMessageRequest.builder()
+                    .queueUrl(queueUrl)
+                    .receiptHandle(m.receiptHandle())
+                    .build();
+            sqs.deleteMessage(deleteRequest);
+
+    }
 
     public static void createAndUploadS3Bucket(S3Client s3, String bucketName,String key, File file){
         software.amazon.awssdk.regions.Region region = Region.US_EAST_1;

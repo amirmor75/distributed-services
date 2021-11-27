@@ -1,3 +1,4 @@
+package lib;
 class Pair<U, V>
 {
     public final U first;       // first field of a Pair
