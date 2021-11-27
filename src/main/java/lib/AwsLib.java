@@ -99,7 +99,7 @@ public class AwsLib {
     }
 
     //Assume that S3Url looks like: bucket /t key
-    public static String getUrlOfPdfByUrlOfS3(S3Client s3, String operation, String pdfUrlInputFile, String S3Url){
+    public static String getUrlOfPdfByUrlOfS3(S3Client s3, String operation, String pdfUrlInputFile, String bucketName, String keyName){
         String[] arrSplit=pdfUrlInputFile.split("/",30); // 30 is arbitrary
         String nameOfTheFileWithDot = arrSplit[arrSplit.length-1]; //it looks like shelly.pdf
         String[] arrSplit2=nameOfTheFileWithDot.split(".",30); // 30 is arbitrary
@@ -118,12 +118,8 @@ public class AwsLib {
                 throw new IllegalArgumentException();
         }
         String path = "../"+nameOfTheFile;
-        String splitarray[];
-        String bucket;
-        String key;
-        splitarray = S3Url.split("\t");
-        bucket = splitarray[0];
-        key = splitarray[1];
+        String bucket = bucketName;
+        String key = keyName;
         s3.getObject(GetObjectRequest.builder().bucket(bucket).key(key).build(),
                 ResponseTransformer.toFile(Paths.get(path)));
         return path;
