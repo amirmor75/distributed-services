@@ -1,3 +1,4 @@
+import com.amazonaws.services.sqs.model.Message;
 import org.apache.commons.io.FileUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
@@ -8,6 +9,7 @@ import org.apache.pdfbox.tools.imageio.ImageIOUtil;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.URL;
+import java.util.List;
 
 import org.apache.pdfbox.tools.PDFText2HTML;
 
@@ -17,8 +19,10 @@ import org.apache.pdfbox.tools.PDFText2HTML;
 public class worker {
     public static void main(String[] args){
         while (true) {
+            AwsBundle instance=AwsBundle.getInstance();
+            String queueUrl = instance.getQueueUrl("workers_manager_queue");
             //▪ Get a message from an SQS queue.
-
+            List<Message> messages = instance.fetchNewMessages(queueUrl);
             //▪ Download the PDF file indicated in the message.
 
             //▪ Perform the operation requested on the file.

@@ -10,7 +10,6 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.*;
 import com.amazonaws.util.EC2MetadataUtils;
-
 import java.io.File;
 import java.io.InputStream;
 import java.util.*;
