@@ -31,7 +31,7 @@ public class LocalApplication {
         File file = new File("input-sample-1.txt");
         //Checks if a Manager node is active on the EC2 cloud. If it is not, the application will start the
         //manager node.
-        //checkManagerNodeActive() //TODO
+        checkAndCreateManagerNodeActive();
         //Uploads the file to S3 TODO:WHAT IS THE KEY. awwwww.... i shall tell you when the time is right.
         AwsLib.createAndUploadS3Bucket(s3,BUCKET_NAME,"key",file);
         //Get url of a created sqs
@@ -56,11 +56,24 @@ public class LocalApplication {
         }
     }
 
-    private static boolean checkManagerNodeActive(){ //TODO
-        Ec2Client ec2 = Ec2Client.builder()
-                .region(Region.US_EAST_1)
-                .build();
-        return true;
+    private static void checkAndCreateManagerNodeActive(){
+        AwsBundle instance=AwsBundle.getInstance();
+        if(!instance.checkIfInstanceExist("Manager"))
+        {
+            createManager();
+        }
+    }
+
+    private static void createManager()
+    {
+        AwsBundle instance=AwsBundle.getInstance();
+        String managerScript = "#! /bin/bash\n" +
+                "sudo yum update -y\n" +
+                "mkdir ManagerFiles\n" +
+                "aws s3 cp s3://ocr-assignment1/JarFiles/Manager.jar ./ManagerFiles\n" +
+                "java -jar /ManagerFiles/Manager.jar\n";
+
+        instance.createInstance("Manager",AwsBundle.ami,managerScript);
     }
 
     private static boolean terminateMode(String[] args) {
@@ -89,12 +102,15 @@ public class LocalApplication {
         String pdfUrlInputFile;
         String pdfUrlInS3OutputFile;
         String pdfUrlOutputFile;
+        String S3BucketName;
+        String S3Key;
         while ((strRead=readbuffer.readLine())!=null){
             splitarray = strRead.split("\t");
-            operation = splitarray[0];
-            pdfUrlInputFile = splitarray[1];
-            pdfUrlInS3OutputFile = splitarray[2];
-            pdfUrlOutputFile = AwsLib.getUrlOfPdfByUrlOfS3(s3,operation,pdfUrlInputFile,pdfUrlInS3OutputFile);
+            pdfUrlInputFile = splitarray[0];
+            S3BucketName = splitarray[1];
+            S3Key = splitarray[2];
+            operation = splitarray[3];
+            pdfUrlOutputFile = AwsLib.getUrlOfPdfByUrlOfS3(s3,operation,pdfUrlInputFile,S3BucketName,S3Key);
             listOperationUrlResult.add(operation + ": " + pdfUrlInputFile + " " + pdfUrlOutputFile);
         }
         return listOperationUrlResult;
