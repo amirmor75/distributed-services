@@ -7,7 +7,11 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.tools.imageio.ImageIOUtil;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 import org.apache.pdfbox.tools.PDFText2HTML;
@@ -111,13 +115,23 @@ public class worker {
     }
 
 
-    public static void downloadPdf(String url, String destinationPath, String queueUrl){
-        String[] arrSplit=url.split("/",30); // 30 is arbitrary
+    public static void downloadPdf(String urlStr, String destinationPath, String queueUrl){
+        String[] arrSplit=urlStr.split("/",30); // 30 is arbitrary
         String name = arrSplit[arrSplit.length-1];
-        try{
-            FileUtils.copyURLToFile(new URL(url), new File(destinationPath+"\\"+name));
-        } catch (IOException e) {
-            //send a message to the manager
+//        try{
+//            FileUtils.copyURLToFile(new URL(url), new File(destinationPath+"\\"+name));
+//        } catch (IOException e) {
+//            //send a message to the manager
+//            sendErrorMsg(queueUrl,e.getMessage());
+//        }
+        try {
+            URL url = new URL(urlStr);
+            try (InputStream in = url.openStream()) {
+                Files.copy(in, Paths.get(name), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                sendErrorMsg(queueUrl,e.getMessage());
+            }
+        }catch(MalformedURLException e){
             sendErrorMsg(queueUrl,e.getMessage());
         }
     }

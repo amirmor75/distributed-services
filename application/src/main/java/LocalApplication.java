@@ -43,9 +43,8 @@ public class LocalApplication {
 //        String outputFileName = args[1];
 //        int n = Integer.parseInt(args[2]);
 //        run(inputFileName,outputFileName,n,args.length==4);
-        lib.createAndUploadS3Bucket(jarsBucket,"manager.jar",new File("jars/manager.jar"));
-//        lib.createAndUploadS3Bucket(jarsBucket,"worker.jar",new File("jars/worker.jar"));
-
+        //lib.createAndUploadS3Bucket(jarsBucket,"manager.jar",new File("jars/manager.jar"));
+        lib.createAndUploadS3Bucket(jarsBucket,"worker.jar",new File("jars/worker.jar"));
     }
 
     private static void run(String inputFileName,String outputFileName, int n,boolean terminate) {
@@ -128,8 +127,8 @@ public class LocalApplication {
                 "sudo rpm --import https://yum.corretto.aws/corretto.key\n" +
                 "sudo curl -L -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo\n"+
                 "sudo yum install -y java-15-amazon-corretto-devel\n"+
-                "aws s3 cp s3://"+jarsBucket+"/manager.jar .\n" +
-                "cd /\n"+
+                "aws s3 cp s3://"+jarsBucket+"/manager.jar /home/ec2-user\n" +
+                "cd /home/ec2-user\n"+
                 "java -jar manager.jar >> a.out\n";
         lib.ec2CreateManager("manager", managerScript);
     }

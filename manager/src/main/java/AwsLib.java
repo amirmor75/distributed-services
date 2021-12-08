@@ -204,7 +204,7 @@ public class AwsLib {
     }
     public void ec2CreateInstance(String instanceName){
 
-        String keyName = "boobikKeyName";
+        String keyName = "boobik";
         createEC2KeyPair( keyName);
         String amiId = /*args[1]*/ "ami-01cc34ab2709337aa";
 
@@ -213,9 +213,9 @@ public class AwsLib {
                 "rpm --import https://yum.corretto.aws/corretto.key\n"+
                 "curl -L -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo\n"+
                 "yum install -y java-15-amazon-corretto-devel\n"+
-                "aws s3 cp s3://"+jarsBucket+"/worker.jar .\n"+
-                "cd /\n"+
-                "java -jar worker.jar >> a.out";
+                "aws s3 cp s3://"+jarsBucket+"/worker.jar /home/ec2-user\n"+
+                "cd /home/ec2-user\n";/*+
+                "java -jar worker.jar >> a.out";*/
         try{
             RunInstancesRequest runRequest = RunInstancesRequest.builder()
                     .imageId(amiId)
