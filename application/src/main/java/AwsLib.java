@@ -23,12 +23,14 @@ import java.util.List;
 
 public class AwsLib {
     private final Ec2Client ec2 = Ec2Client.create();
-    final public static String iamRole = "arn:aws:iam::760849118162:instance-profile/LabInstanceProfile";
     private final SqsClient sqs = SqsClient.builder().region(Region.US_EAST_1).build();
     private final S3Client s3 = S3Client.builder().region(Region.US_EAST_1).build();
-    private static final AwsLib instance = new AwsLib();
-    private String secGroup = "sg-0984137adf1fcf9c9";
 
+
+    final private static String iamRole = "arn:aws:iam::059028560710:instance-profile/LabInstanceProfile";
+    final private static String secGroup = "sg-0da80c75c445e8c7b";
+
+    private static final AwsLib instance = new AwsLib();
 
 
 
@@ -126,7 +128,7 @@ public class AwsLib {
 
     public void ec2CreateManager(String instanceName, String userScript){
 
-        String keyName = "boobikKeyName";
+        String keyName = "boobik";
         createEC2KeyPair( keyName);
         String amiId = /*args[1]*/ "ami-01cc34ab2709337aa";
 

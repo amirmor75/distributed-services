@@ -21,45 +21,17 @@ import java.util.Iterator;
 public class AwsBundle {
     private static final int MAX_INSTANCES = 19 ;
     private final AmazonEC2 ec2;
-    private final AmazonS3 s3;
-    private final AmazonSQS sqs;
 
 
-    public final String requestsAppsQueueName = "requestsAppsQueue";
-    public final String requestsWorkersQueueName = "requestsWorkersQueue";
-    public final String resultsWorkersQueueName = "resultsWorkersQueue";
-
-    public static final String bucketName = "assignment1";
-    public static final String inputFolder = "input-files";
-    public static final String outputFolder = "output-files";
-    public static final String resultQueuePrefix = "resultQueue_";
 
 
-    public static final String ami = "ami-0279c3b3186e54acd";
 
-    //message from local
-    public final int messageType = 0;
-    public final int uniqueLocalFilePath = 1;
-    public final int outputFilepath = 2;
-    public final int workersRatio = 3;
-    static final String Delimiter = "X";
-
-    //message from worker
-    public final int urlIndex = 0;
-    public final int textIndex = 1;
-
-    //message to worker
-    public final int localIdIndex = 0;
-    public final int lineNumberIndex = 1;
-    public final int urlWorkerIndex = 2;
 
 
     private static final AwsBundle instance = new AwsBundle();
 
     private AwsBundle(){
         ec2 = AmazonEC2ClientBuilder.defaultClient();
-        s3 = AmazonS3ClientBuilder.defaultClient();
-        sqs = AmazonSQSClientBuilder.defaultClient();
     }
 
     public static AwsBundle getInstance()
@@ -90,10 +62,8 @@ public class AwsBundle {
         return false;
     }
 
-    public void deleteBucket(String BucketName){
+    public void deleteBucket(String bucketName){
         Regions clientRegion = Regions.DEFAULT_REGION;
-        String bucketName = "*** Bucket name ***";
-
         try {
             AmazonS3 s3Client = AmazonS3ClientBuilder.standard()
                     .withCredentials(new ProfileCredentialsProvider())
@@ -149,7 +119,6 @@ public class AwsBundle {
             // Amazon S3 couldn't be contacted for a response, or the client couldn't
             // parse the response from Amazon S3.
             System.out.println(e.getMessage());
-
         }
 
     }

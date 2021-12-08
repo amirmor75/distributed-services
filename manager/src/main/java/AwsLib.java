@@ -26,8 +26,9 @@ public class AwsLib {
     private final Ec2Client ec2 = Ec2Client.create();
     private  final SqsClient sqs = SqsClient.builder().region(Region.US_EAST_1).build();
     private final S3Client s3 = S3Client.builder().region(Region.US_EAST_1).build();
-    private final String secGroup= "sg-0984137adf1fcf9c9";
-    final public static String iamRole = "arn:aws:iam::760849118162:instance-profile/LabInstanceProfile";
+
+    final public static String iamRole = "arn:aws:iam::059028560710:instance-profile/LabInstanceProfile";
+    private final String secGroup= "sg-0da80c75c445e8c7b";
     private static final String workerBucketCode = "amirshellyworkercode";
     private static final String workerKey= "workerjar";
 

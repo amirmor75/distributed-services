@@ -25,33 +25,33 @@ public class AwsBundle {
     private final AmazonSQS sqs;
 
 
-    public final String requestsAppsQueueName = "requestsAppsQueue";
-    public final String requestsWorkersQueueName = "requestsWorkersQueue";
-    public final String resultsWorkersQueueName = "resultsWorkersQueue";
-
-    public static final String bucketName = "outputbucket";
-    public static final String inputFolder = "input-files";
-    public static final String outputFolder = "output-files";
-    public static final String resultQueuePrefix = "resultQueue_";
-
-
-    public static final String ami = "ami-0279c3b3186e54acd";
-
-    //message from local
-    public final int messageType = 0;
-    public final int uniqueLocalFilePath = 1;
-    public final int outputFilepath = 2;
-    public final int workersRatio = 3;
-    static final String Delimiter = "X";
-
-    //message from worker
-    public final int urlIndex = 0;
-    public final int textIndex = 1;
-
-    //message to worker
-    public final int localIdIndex = 0;
-    public final int lineNumberIndex = 1;
-    public final int urlWorkerIndex = 2;
+//    public final String requestsAppsQueueName = "requestsAppsQueue";
+//    public final String requestsWorkersQueueName = "requestsWorkersQueue";
+//    public final String resultsWorkersQueueName = "resultsWorkersQueue";
+//
+//    public static final String bucketName = "outputbucket";
+//    public static final String inputFolder = "input-files";
+//    public static final String outputFolder = "output-files";
+//    public static final String resultQueuePrefix = "resultQueue_";
+//
+//
+//    public static final String ami = "ami-0279c3b3186e54acd";
+//
+//    //message from local
+//    public final int messageType = 0;
+//    public final int uniqueLocalFilePath = 1;
+//    public final int outputFilepath = 2;
+//    public final int workersRatio = 3;
+//    static final String Delimiter = "X";
+//
+//    //message from worker
+//    public final int urlIndex = 0;
+//    public final int textIndex = 1;
+//
+//    //message to worker
+//    public final int localIdIndex = 0;
+//    public final int lineNumberIndex = 1;
+//    public final int urlWorkerIndex = 2;
 
 
     private static final AwsBundle instance = new AwsBundle();

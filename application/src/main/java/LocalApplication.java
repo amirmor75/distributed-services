@@ -21,17 +21,13 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class LocalApplication {
 
-    private static final String bucketManagerName= "localapplicationamir";
-    private static final String keyName= "localapplications";
-    private static final String bucketOutputName= "outputbucketamir";
+    private static final String bucketManagerName= "manager-input-bucket";
+    private static final String keyManagerName= "manager-input-bucket-key";
 
-    private static final String managerQueueName= "managerspecialsqs";
-    private static final String outputQueueName="myoutput";
+    private static final String managerInputQueueName= "manager-input-queue";
+    private static final String outputQueueName="local-app-result-queue";
 
-    private static final String managerBucketcode = "amirshellymanagercode";
-    private static final String managerKey = "managerjar";
-    private static final String workerBucket = "amirshellyworkercode";
-    private static final String workerKey= "workerjar";
+    private static final String jarsBucket = "manager-worker-jar-bucket";
 
     private static final AtomicLong LAST_TIME_MS = new AtomicLong();
     private static final AwsLib lib = AwsLib.getInstance();
@@ -53,7 +49,7 @@ public class LocalApplication {
 
     private static void run(String inputFileName,String outputFileName, int n,boolean terminate) {
         long localUnique = uniqueCurrentTimeMS();
-        String localKeyName = keyName + localUnique ;
+        String localKeyName = keyManagerName + localUnique ;
         String localOutputQueueName = outputQueueName + localUnique;
         String localOutputQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(localOutputQueueName);
         File inputfile = new File(inputFileName);
@@ -66,7 +62,7 @@ public class LocalApplication {
         lib.createAndUploadS3Bucket(bucketManagerName,localKeyName,inputfile);
 
         //Get url of a created sqs
-        String managerQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(managerQueueName);
+        String managerQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(managerInputQueueName);
 
         //Sends a message to an SQS queue, stating the location of the file on S3 (=BUCKET_NAME)
         lib.sqsSendMessage(managerQueueUrl, bucketManagerName+'\t'+localKeyName+'\t'+ localOutputQueueName +'\t'+n);
@@ -126,7 +122,7 @@ public class LocalApplication {
                 "sudo rpm --import https://yum.corretto.aws/corretto.key\n" +
                 "sudo curl -L -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo\n"+
                 "sudo yum install -y java-15-amazon-corretto-devel\n"+
-                "aws s3 cp s3://"+managerBucketcode+"/manager.jar .\n" +
+                "aws s3 cp s3://"+jarsBucket+"/manager.jar .\n" +
                 "cd /\n"+
                 "java -jar manager.jar\n";
         lib.ec2CreateManager("manager", managerScript);
