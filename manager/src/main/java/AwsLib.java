@@ -214,8 +214,8 @@ public class AwsLib {
                 "curl -L -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo\n"+
                 "yum install -y java-15-amazon-corretto-devel\n"+
                 "aws s3 cp s3://"+jarsBucket+"/worker.jar /home/ec2-user\n"+
-                "cd /home/ec2-user\n";/*+
-                "java -jar worker.jar >> a.out";*/
+                "cd /home/ec2-user\n"+
+                "java -jar worker.jar >> a.out";
         try{
             RunInstancesRequest runRequest = RunInstancesRequest.builder()
                     .imageId(amiId)
