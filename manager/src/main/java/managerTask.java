@@ -38,7 +38,7 @@ public class managerTask implements Runnable{
         String outputQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(outputQueueName);
         String outputKeyName = outputQueueName ;
         String mangerQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(managerInputQueueName);
-        lib.changeVisibility(startMessage,mangerQueueUrl,900/*15min*/);
+        lib.changeVisibility(startMessage,mangerQueueUrl,1800/*30min*/);
 
         // Creates an SQS message for each URL in the input file together with the operation
         //that should be performed on it.

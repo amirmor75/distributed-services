@@ -28,8 +28,7 @@ public class AwsLib {
 
 
     final private static String iamRole = "arn:aws:iam::059028560710:instance-profile/LabInstanceProfile";
-    final private static String secGroup = "sg-0da80c75c445e8c7b";
-
+    final private static String secGroup = "sg-02af33083ff48c46b";
     private static final AwsLib instance = new AwsLib();
 
 
@@ -85,11 +84,13 @@ public class AwsLib {
             return sqs.receiveMessage(receiveRequest).messages();
         }catch (SqsException e){
             System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
-            return null;
+            System.exit(1);
         }catch (Exception e){
+
         System.out.println("sqsGetMessagesFromQueue "+e.getClass().getName()+" "+queueUrl+e.getMessage());
-        return null;
+        System.exit(1);
     }
+        return null;
     }
     public void createAndUploadS3Bucket( String bucketName,String key, File file){
         try{

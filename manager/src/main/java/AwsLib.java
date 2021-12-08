@@ -28,7 +28,7 @@ public class AwsLib {
     private final S3Client s3 = S3Client.builder().region(Region.US_EAST_1).build();
 
     final public static String iamRole = "arn:aws:iam::059028560710:instance-profile/LabInstanceProfile";
-    private final String secGroup= "sg-0da80c75c445e8c7b";
+    private final String secGroup= "sg-02af33083ff48c46b";
 
 
     private static final String jarsBucket = "manager-worker-jar-bucket";

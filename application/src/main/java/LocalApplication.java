@@ -34,17 +34,17 @@ public class LocalApplication {
 
 
     public static void main(String[] args) {
-        if (args.length < 3) {
-            System.out.println("not enough arguments given!");
-            System.exit(1);
-        }
-
-        String inputFileName = args[0];
-        String outputFileName = args[1];
-        int n = Integer.parseInt(args[2]);
-        run(inputFileName,outputFileName,n,args.length==4);
-//        lib.createAndUploadS3Bucket(jarsBucket,"manager.jar",new File("manager.jar"));
-//        lib.createAndUploadS3Bucket(jarsBucket,"worker.jar",new File("worker.jar"));
+//        if (args.length < 3) {
+//            System.out.println("not enough arguments given!");
+//            System.exit(1);
+//        }
+//
+//        String inputFileName = args[0];
+//        String outputFileName = args[1];
+//        int n = Integer.parseInt(args[2]);
+//        run(inputFileName,outputFileName,n,args.length==4);
+        lib.createAndUploadS3Bucket(jarsBucket,"manager.jar",new File("jars/manager.jar"));
+//        lib.createAndUploadS3Bucket(jarsBucket,"worker.jar",new File("jars/worker.jar"));
 
     }
 
@@ -100,6 +100,11 @@ public class LocalApplication {
         List<Message> messages;
         while(true){
             messages = lib.sqsGetMessagesFromQueue(localOutputQueueUrl);
+            try {
+                Thread.sleep(1000);
+            }catch (Exception e){
+                continue;
+            }
             if(messages!= null && messages.size()>0)
                 return messages.get(0);
         }
