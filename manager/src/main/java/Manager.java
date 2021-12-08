@@ -16,13 +16,12 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @SuppressWarnings("InfiniteLoopStatement")
 public class Manager {
-    private static final String managerQueueName= "managerspecialsqs";
+    private static final String managerInputQueueName= "manager-input-queue";
     private static final AwsLib lib = AwsLib.getInstance();
-    private static String workersQueueName = "workers_queue";
-    private static String workersQueueUrl = lib.sqsCreateAndGetQueueUrlFromName("workers_queue");
+    private final static String workersQueueName = "workers-queue";
 
-    private static final String summeryFolder = ".\\summeryFiles";
-    private static final String inputFolder = ".\\inputFiles";
+//    private static final String summeryFolder = ".\\summeryFiles";
+//    private static final String inputFolder = ".\\inputFiles";
 
     private static final AwsBundle awsBundle = AwsBundle.getInstance();
 
@@ -43,7 +42,7 @@ public class Manager {
 
 
 
-        String mangerQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(managerQueueName);
+        String mangerQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(managerInputQueueName);
         String workersQueueUrl = lib.sqsCreateAndGetQueueUrlFromName( workersQueueName);
         ExecutorService executor = Executors.newFixedThreadPool(5);//creating a pool of 5 threads
 

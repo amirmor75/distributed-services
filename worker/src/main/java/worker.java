@@ -18,18 +18,23 @@ public class worker {
     private static String outputQueue;
     private static String operation;
     private static String pdfUrlInputFile;
-    private static String outputBucketName = "outputbucketamirworkers";
-    private static String outputKeyName = "outputkeyamirworkers";
-    private static Message startMessage ;
+    private final static String workersResultsBucketName = "workers-results-bucket";
+    private final static String workersResultsKey = "workers-results-key";
+
+    private final static String workersQueueName = "workers-queue";
+
     private final static AwsLib lib = AwsLib.getInstance();
+    private static Message startMessage ;
+
 
     private static final String pdfFolder = "."/*".\\pdfFiles"*/;
     private static final String convertedFolder = "."/*".\\convertedFiles"*/;
 
+    @SuppressWarnings("InfiniteLoopStatement")
     public static void main(String[] args){
-        String queueUrl = lib.sqsCreateAndGetQueueUrlFromName("workers_queue");
-        new File(pdfFolder).mkdirs();
-        new File(convertedFolder).mkdirs();
+        String queueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersQueueName);
+//        new File(pdfFolder).mkdirs();
+//        new File(convertedFolder).mkdirs();
         while (true) {
             run(queueUrl);
         }
@@ -52,7 +57,7 @@ public class worker {
         }
 
         //▪ Download the PDF file indicated in the message.
-        String splitarray[];
+        String[] splitArray;
         int i = randomIntFromInterval(0, messages.size() - 1);
         Message message = messages.get(i);
         int count =0;
@@ -70,10 +75,10 @@ public class worker {
         }
         startMessage = message;
 
-        splitarray = message.body().split("\t");
-        outputQueue = splitarray[1];
-        operation = splitarray[2];
-        pdfUrlInputFile = splitarray[3];
+        splitArray = message.body().split("\t");
+        outputQueue = splitArray[1];
+        operation = splitArray[2];
+        pdfUrlInputFile = splitArray[3];
         System.out.println(message.body() + "\n");
         downloadPdf(pdfUrlInputFile, pdfFolder,queueUrl);
         //▪ Perform the operation requested on the file.
@@ -88,7 +93,7 @@ public class worker {
             return;
         //▪ Upload the resulting output file to S3.
         try {
-            lib.createAndUploadS3Bucket(outputBucketName, outputKeyName+nameOfTheFile, new File(convertedFolder+"\\"+nameOfTheFile + format));
+            lib.createAndUploadS3Bucket(workersResultsBucketName, workersResultsKey+nameOfTheFile, new File(convertedFolder+"\\"+nameOfTheFile + format));
         }catch (Exception e){
             sendErrorMsg(queueUrl,e.getMessage());
             return;
@@ -96,7 +101,7 @@ public class worker {
         //▪ Put a message in an SQS queue indicating the original URL of the PDF, the S3 url of the new
         // image file, and the operation that was performed.
         lib.sqsSendMessage(queueUrl, "out\t"+outputQueue + "\t" + pdfUrlInputFile + "\t"
-                + outputBucketName + "\t" + outputKeyName+nameOfTheFile +"\t" + operation);
+                + workersResultsBucketName + "\t" + workersResultsKey+nameOfTheFile +"\t" + operation);
         //▪ remove the processed message from the SQS queue.
         lib.sqsDeleteMessage(queueUrl, message);
     }

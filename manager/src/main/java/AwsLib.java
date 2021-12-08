@@ -29,8 +29,9 @@ public class AwsLib {
 
     final public static String iamRole = "arn:aws:iam::059028560710:instance-profile/LabInstanceProfile";
     private final String secGroup= "sg-0da80c75c445e8c7b";
-    private static final String workerBucketCode = "amirshellyworkercode";
-    private static final String workerKey= "workerjar";
+
+
+    private static final String jarsBucket = "manager-worker-jar-bucket";
 
 
     public static   AwsLib getInstance() {
@@ -114,8 +115,7 @@ public class AwsLib {
         }
 
     }
-    public String sqsCreateAndGetQueueUrlFromName ( String queueName) {
-
+    public String sqsCreateAndGetQueueUrlFromName (String queueName) {
         try {
             CreateQueueRequest request = CreateQueueRequest.builder()
                     .queueName(queueName)
@@ -126,7 +126,7 @@ public class AwsLib {
                     .build();
             return sqs.getQueueUrl(getQueueRequest).queueUrl();
         } catch (Exception e) {
-            System.out.println("error create queue "+queueName+e.getMessage());
+            System.out.println("error create queue "+queueName+" "+e.getMessage());
             System.exit(1);
         }
         return null;
@@ -213,9 +213,9 @@ public class AwsLib {
                 "rpm --import https://yum.corretto.aws/corretto.key\n"+
                 "curl -L -o /etc/yum.repos.d/corretto.repo https://yum.corretto.aws/corretto.repo\n"+
                 "yum install -y java-15-amazon-corretto-devel\n"+
-                "aws s3 cp s3://"+workerBucketCode+"/worker.jar .\n"+
+                "aws s3 cp s3://"+jarsBucket+"/worker.jar .\n"+
                 "cd /\n"+
-                "java -jar worker.jar";
+                "java -jar worker.jar >> a.out";
         try{
             RunInstancesRequest runRequest = RunInstancesRequest.builder()
                     .imageId(amiId)
@@ -261,8 +261,11 @@ public class AwsLib {
                 IOUtils.copy(inputStream, outputStream);
                 return file;
             } catch (FileNotFoundException e) {
+                System.out.println(bucketName+" "+ keyName +" "+ fileName +" "+ e.getMessage());
                 // handle exception here
             } catch (IOException e) {
+                System.out.println(bucketName+" "+ keyName +" "+ fileName +" "+ e.getMessage());
+
                 // handle exception here
             }
         } catch (Exception e) {

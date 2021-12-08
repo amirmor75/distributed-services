@@ -33,8 +33,6 @@ public class LocalApplication {
     private static final AwsLib lib = AwsLib.getInstance();
 
 
-
-
     public static void main(String[] args) {
         if (args.length < 3) {
             System.out.println("not enough arguments given!");
@@ -45,6 +43,9 @@ public class LocalApplication {
         String outputFileName = args[1];
         int n = Integer.parseInt(args[2]);
         run(inputFileName,outputFileName,n,args.length==4);
+//        lib.createAndUploadS3Bucket(jarsBucket,"manager.jar",new File("manager.jar"));
+//        lib.createAndUploadS3Bucket(jarsBucket,"worker.jar",new File("worker.jar"));
+
     }
 
     private static void run(String inputFileName,String outputFileName, int n,boolean terminate) {
@@ -124,7 +125,7 @@ public class LocalApplication {
                 "sudo yum install -y java-15-amazon-corretto-devel\n"+
                 "aws s3 cp s3://"+jarsBucket+"/manager.jar .\n" +
                 "cd /\n"+
-                "java -jar manager.jar\n";
+                "java -jar manager.jar >> a.out\n";
         lib.ec2CreateManager("manager", managerScript);
     }
 //    private static void uploadManagerWorkerCodeToS3() {

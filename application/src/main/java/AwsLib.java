@@ -71,7 +71,7 @@ public class AwsLib {
                     .build();
             return sqs.getQueueUrl(getQueueRequest).queueUrl();
         } catch (Exception e) {
-            System.out.println("error create queue "+queueName+e.getMessage());
+            System.out.println("error create queue "+queueName+" "+e.getMessage());
             deleteAllQueues();
             System.exit(1);
         }

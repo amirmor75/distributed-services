@@ -11,13 +11,13 @@ import java.util.List;
 
 public class managerTask implements Runnable{
     private final AwsLib lib = AwsLib.getInstance();
-    private static final String managerQueueName= "managerspecialsqs";
-    private Message startMessage;
+    private static final String managerInputQueueName= "manager-input-queue";
+    private static Message startMessage;
 
-    private  String workersQueueName = "workers_queue";
-    private  String workersQueueUrl = lib.sqsCreateAndGetQueueUrlFromName("workers_queue");
+    private final static String workersQueueName = "workers-queue";
+    private final String workersQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersQueueName);
 
-    private final String outputBucketName = "manageroutputbucketamir";
+    private static final String outputBucketName = "manager-output-bucket";
 //    private static final String summeryFolder = ".\\summeryFiles";
 //    private static final String inputFolder = ".\\inputFiles";
 
@@ -37,7 +37,7 @@ public class managerTask implements Runnable{
         File inputFile = lib.downloadS3File( inputBucketName,inputKeyName, "inputFile" + Thread.currentThread().getId());//make name unique per thread
         String outputQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(outputQueueName);
         String outputKeyName = outputQueueName ;
-        String mangerQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(managerQueueName);
+        String mangerQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(managerInputQueueName);
         lib.changeVisibility(startMessage,mangerQueueUrl,900/*15min*/);
 
         // Creates an SQS message for each URL in the input file together with the operation
