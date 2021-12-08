@@ -1,5 +1,3 @@
-package lib;
-
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.*;
@@ -12,11 +10,12 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.*;
 import com.amazonaws.util.EC2MetadataUtils;
+import software.amazon.awssdk.services.ec2.Ec2Client;
+import software.amazon.awssdk.services.ec2.model.Ec2Exception;
+
 import java.io.File;
 import java.io.InputStream;
 import java.util.*;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 
 public class AwsBundle {
@@ -36,7 +35,7 @@ public class AwsBundle {
     public static final String resultQueuePrefix = "resultQueue_";
 
 
-    public static final String ami = "yourAMI";
+    public static final String ami = "ami-0279c3b3186e54acd";
 
     //message from local
     public final int messageType = 0;
@@ -69,26 +68,20 @@ public class AwsBundle {
     }
 
 
-    public boolean checkIfInstanceExist(String name)
+    public int checkInstanceCount()
     {
+        int k = 0;
         DescribeInstancesRequest describeInstancesRequest = new DescribeInstancesRequest();
         DescribeInstancesResult describeInstancesResult = this.ec2.describeInstances(describeInstancesRequest);
         for (Reservation r : describeInstancesResult.getReservations())
         {
             for (Instance i : r.getInstances())
             {
-                if (!i.getState().getName().equals("running"))
-                    continue;
-                for (Tag t : i.getTags())
-                {
-                    if (t.getKey().equals("Name")&&t.getValue().equals(name))
-                    {
-                        return true;
-                    }
-                }
+                if (i.getState().getName().equals("running"))
+                    k++;
             }
         }
-        return false;
+        return k;
     }
 
     public String getMangerStatus()
@@ -223,6 +216,20 @@ public class AwsBundle {
         this.sqs.deleteMessage(new DeleteMessageRequest(queueUrl, message.getReceiptHandle()));
     }
 
+
+    public static void createEC2KeyPair(Ec2Client ec2, String keyName) {
+
+        try {
+            software.amazon.awssdk.services.ec2.model.CreateKeyPairRequest request = software.amazon.awssdk.services.ec2.model.CreateKeyPairRequest.builder()
+                    .keyName(keyName).build();
+
+            ec2.createKeyPair(request);
+            System.out.printf(
+                    "Successfully created key pair named %s",
+                    keyName);
+
+        } catch (Ec2Exception ignored) {}
+    }
     public void createInstance(String name, String imageId,String userDataScript)
     {
         DescribeInstancesRequest request = new DescribeInstancesRequest();
@@ -233,11 +240,11 @@ public class AwsBundle {
 
         RunInstancesRequest run_request = new RunInstancesRequest()
                 .withImageId(imageId)
-                .withKeyName("DSP_211_OCR")
-                .withIamInstanceProfile(new IamInstanceProfileSpecification().withName("admin"))
+                //.withKeyName("vockey")
+               // .withIamInstanceProfile(new IamInstanceProfileSpecification().withArn("arn:aws:iam::760849118162:instance-profile/LabInstanceProfile"))
                 .withInstanceType(InstanceType.T2Micro)
-                .withSecurityGroupIds("sg-0a216aa1700a994ef")
-                .withUserData(Base64.getEncoder().encodeToString(userDataScript.getBytes(UTF_8)))
+                .withSecurityGroupIds("sg-03e1043c7ed636b1a")
+                //.withUserData(Base64.getEncoder().encodeToString(userDataScript.getBytes(UTF_8)))
                 .withMaxCount(1)
                 .withMinCount(1);
 
