@@ -44,7 +44,7 @@ public class LocalApplication {
         int n = Integer.parseInt(args[2]);
         run(inputFileName,outputFileName,n,args.length==4);
 //        lib.createAndUploadS3Bucket(jarsBucket,"manager.jar",new File("jars/manager.jar"));
-//        lib.createAndUploadS3Bucket(jarsBucket,"worker.jar",new File("jars/worker.jar"));
+////        lib.createAndUploadS3Bucket(jarsBucket,"worker.jar",new File("jars/worker.jar"));
     }
 
     private static void run(String inputFileName,String outputFileName, int n,boolean terminate) {
@@ -82,6 +82,7 @@ public class LocalApplication {
         } catch (IOException e) {
             e.printStackTrace();
         }
+        lib.sqsDeleteQueue(localOutputQueueUrl);
 
 
         //In case of terminate mode (as defined by the command-line argument), sends a termination
@@ -96,17 +97,16 @@ public class LocalApplication {
         AwsLib lib = AwsLib.getInstance();
 
         System.out.println("waiting for result message");
-        List<Message> messages;
-        while(true){
-            messages = lib.sqsGetMessagesFromQueue(localOutputQueueUrl);
+        Message message=null;
+        while( message == null ){
+            message = lib.sqsGetMessageFromQueue(localOutputQueueUrl);
             try {
-                Thread.sleep(1000);
+                Thread.sleep(3000);
             }catch (Exception e){
                 continue;
             }
-            if(messages!= null && messages.size()>0)
-                return messages.get(0);
         }
+        return null;
     }
 
     private static void checkAndCreateManagerNodeActive(){
@@ -130,7 +130,7 @@ public class LocalApplication {
                 "aws s3 cp s3://"+jarsBucket+"/manager.jar /home/ec2-user\n" +
                 "cd /home/ec2-user\n"+
                 "java -jar manager.jar >> a.out\n";
-        lib.ec2CreateManager("manager", managerScript);
+        lib.ec2CreateManager("manager", "");
     }
 //    private static void uploadManagerWorkerCodeToS3() {
 //        lib.createAndUploadS3Bucket(managerBucketcode,managerKey,new File("manager.jar"));
@@ -151,10 +151,10 @@ public class LocalApplication {
         String S3KeyOrErrorMsg;
         while ((strRead=readbuffer.readLine())!=null){
             splitarray = strRead.split("\t");
-            pdfUrlInputFile = splitarray[2];
-            S3BucketName = splitarray[3];
-            S3KeyOrErrorMsg = splitarray[4];
-            operation = splitarray[5];
+            pdfUrlInputFile = splitarray[1];
+            S3BucketName = splitarray[2];
+            S3KeyOrErrorMsg = splitarray[3];
+            operation = splitarray[4];
             if(S3BucketName.equals("error")) {
                 listOperationUrlResult.add('-'+operation + ":\t" + pdfUrlInputFile + '\t' + S3KeyOrErrorMsg);
                 continue;

@@ -10,6 +10,7 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClientBuilder;
 import com.amazonaws.services.sqs.model.*;
 import com.amazonaws.util.EC2MetadataUtils;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ec2.Ec2Client;
 import software.amazon.awssdk.services.ec2.model.Ec2Exception;
 
@@ -265,14 +266,7 @@ public class AwsBundle {
                 reservation_id,"yourAMI");
     }
 
-    public void terminateCurrentInstance()
-    {
-        String instanceId = EC2MetadataUtils.getInstanceId();
-        List<String> instanceIds = new ArrayList<>();
-        instanceIds.add(instanceId);
-        TerminateInstancesRequest request = new TerminateInstancesRequest(instanceIds);
-        this.ec2.terminateInstances(request);
-    }
+
 
 
     public final AmazonSQS getSqs()
@@ -282,5 +276,22 @@ public class AwsBundle {
 
     public final AmazonEC2 getEc2() {
         return this.ec2;
+    }
+
+    public void terminateCurrentInstance()
+    {
+//        String instanceId = EC2MetadataUtils.getInstanceId();
+//        List<String> instanceIds = new ArrayList<>();
+//        instanceIds.add(instanceId);
+//        TerminateInstancesRequest request = new TerminateInstancesRequest(instanceIds);
+//        this.ec2.terminateInstances(request);
+        String instanceId = EC2MetadataUtils.getInstanceId();
+        software.amazon.awssdk.regions.Region region = Region.US_EAST_1;
+        Ec2Client ec2 = Ec2Client.builder()
+                .region(region)
+                .build();
+
+        AwsLib.getInstance().terminateEC2(ec2, instanceId) ;
+        ec2.close();
     }
 }

@@ -18,7 +18,9 @@ import java.io.*;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AwsLib {
     private static final AwsLib instance = new AwsLib();
@@ -115,10 +117,16 @@ public class AwsLib {
         }
 
     }
-    public String sqsCreateAndGetQueueUrlFromName (String queueName) {
+
+    public String sqsCreateAndGetQueueUrlFromName ( String queueName) {
+
         try {
+            Map<QueueAttributeName, String> attributes = new HashMap<QueueAttributeName, String>();
+            attributes.put(QueueAttributeName.FIFO_QUEUE, "true");
+            attributes.put(QueueAttributeName.CONTENT_BASED_DEDUPLICATION, "true");
             CreateQueueRequest request = CreateQueueRequest.builder()
                     .queueName(queueName)
+                    .attributes(attributes)
                     .build();
             CreateQueueResponse create_result = sqs.createQueue(request);
             GetQueueUrlRequest getQueueRequest = GetQueueUrlRequest.builder()
@@ -126,25 +134,29 @@ public class AwsLib {
                     .build();
             return sqs.getQueueUrl(getQueueRequest).queueUrl();
         } catch (Exception e) {
-            System.out.println("error create queue "+queueName+" "+e.getMessage());
+            System.out.println("error create queue "+queueName+e.getMessage());
             System.exit(1);
         }
         return null;
     }
-    public List<Message> sqsGetMessagesFromQueue( String queueUrl) {
+
+    public Message sqsGetMessageFromQueue( String queueUrl) {
         try{
-            ReceiveMessageRequest receiveRequest = ReceiveMessageRequest.builder()
+            return sqs.receiveMessage(ReceiveMessageRequest.builder()
+                    .waitTimeSeconds(3)
                     .queueUrl(queueUrl)
-                    .build();
-            return sqs.receiveMessage(receiveRequest).messages();
-        }catch (SqsException e){
+                    .build()).messages().get(0);
+        }catch (QueueDoesNotExistException e){
+            System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
+            AwsBundle.getInstance().terminateCurrentInstance();
+            System.exit(1);
+        }catch (Exception e){
             System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
             return null;
-        }catch (Exception e){
-            System.out.println("sqsGetMessagesFromQueue "+e.getClass().getName()+" "+queueUrl+e.getMessage());
-            return null;
         }
+        return null;
     }
+
     public void createAndUploadS3Bucket( String bucketName,String key, File file){
         try{
             software.amazon.awssdk.regions.Region region = Region.US_EAST_1;
@@ -225,7 +237,7 @@ public class AwsLib {
                     .securityGroupIds(secGroup)
                     .keyName(keyName)
                     .iamInstanceProfile(IamInstanceProfileSpecification.builder().arn(iamRole).build())
-                    .userData(Base64.encodeBase64String(userData.getBytes(StandardCharsets.UTF_8)))
+                    .userData(Base64.encodeBase64String("userData".getBytes(StandardCharsets.UTF_8)))
                     .build();
             RunInstancesResponse response = ec2.runInstances(runRequest);
             String instanceId = response.instances().get(0).instanceId();
@@ -284,6 +296,25 @@ public class AwsLib {
             sqsDeleteQueue(qUrl);
     }
 
+
+    public static void terminateEC2( Ec2Client ec2, String instanceID) {
+        try {
+            TerminateInstancesRequest ti = TerminateInstancesRequest.builder()
+                    .instanceIds(instanceID)
+                    .build();
+
+            TerminateInstancesResponse response = ec2.terminateInstances(ti);
+            List<InstanceStateChange> list = response.terminatingInstances();
+
+            for (int i = 0; i < list.size(); i++) {
+                InstanceStateChange sc = (list.get(i));
+                System.out.println("The ID of the terminated instance is " + sc.instanceId());
+            }
+        } catch (Ec2Exception e) {
+            System.err.println(e.awsErrorDetails().errorMessage());
+            System.exit(1);
+        }
+    }
 
 
 

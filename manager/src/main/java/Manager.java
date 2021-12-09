@@ -16,9 +16,14 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @SuppressWarnings("InfiniteLoopStatement")
 public class Manager {
-    private static final String managerInputQueueName= "manager-input-queue";
+    private static final String managerInputQueueName = "manager-input-queue";
     private static final AwsLib lib = AwsLib.getInstance();
-    private final static String workersQueueName = "workers-queue";
+
+    private final static String workersInQueueName = "workers-in-queue";
+    private final static String workersOutQueueName = "workers-out-queue";
+
+    private static final String workersInQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersInQueueName);
+    private static final String workersOutQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersOutQueueName);
 
 //    private static final String summeryFolder = ".\\summeryFiles";
 //    private static final String inputFolder = ".\\inputFiles";
@@ -41,35 +46,34 @@ public class Manager {
     private static void run() {
 
 
-
         String mangerQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(managerInputQueueName);
-        String workersQueueUrl = lib.sqsCreateAndGetQueueUrlFromName( workersQueueName);
         ExecutorService executor = Executors.newFixedThreadPool(5);//creating a pool of 5 threads
 
         while (true) {
-            List<Message> list_m = lib.sqsGetMessagesFromQueue(mangerQueueUrl);
-            if (list_m==null || list_m.size()<=0)
-                continue;
-            for (Message m : list_m) {
-                if (m.body().equals("terminate")) {
-                    while (lib.sqsGetMessagesFromQueue(workersQueueUrl).size()!=0);
-                    lib.sqsSendMessage(workersQueueUrl,"terminate");
-                    // todo check all tasks finshed and workers dead before you die
-                    // todo delete sqs and s3 stuff if nedded
-                    while(awsBundle.checkInstanceCount()>1);
-                    lib.deleteAllQueues();
-                    awsBundle.terminateCurrentInstance();
-                }
+            Message msg = lib.sqsGetMessageFromQueue(mangerQueueUrl);
+
+            if (msg.body().startsWith("terminate")) {
+                lib.sqsSendMessage(workersInQueueUrl, "terminate");
+                System.out.println("waiting for workers to die before me");
+                while (awsBundle.checkInstanceCount() > 1) ;
+                System.out.println("workers died");
+                lib.deleteAllQueues();
+                //todo delete the right buckets
+                lib.s3DeleteBucket("");
+                awsBundle.terminateCurrentInstance();
+                System.exit(1);
             }
-            for (Message m : list_m) {
-                Runnable worker = new managerTask( m );
-                executor.execute(worker);//calling execute method of ExecutorService
-                System.out.printf("accepted message { %s }\n",m.body());
-            }
+            Runnable worker = new managerTask(msg);
+            executor.execute(worker);//calling execute method of ExecutorService
+            System.out.printf("accepted message { %s }\n", msg.body());
         }
 
     }
+}
 
 
 
-    }
+
+
+
+

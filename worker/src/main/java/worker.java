@@ -25,7 +25,11 @@ public class worker {
     private final static String workersResultsBucketName = "workers-results-bucket";
     private final static String workersResultsKey = "workers-results-key";
 
-    private final static String workersQueueName = "workers-queue";
+    private final static String workersInQueueName = "workers-in-queue";
+    private final static String workersOutQueueName = "workers-out-queue";
+
+    private final String workersInQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersInQueueName);
+    private final String workersOutQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersOutQueueName);
 
     private final static AwsLib lib = AwsLib.getInstance();
     private static Message startMessage ;
@@ -36,55 +40,38 @@ public class worker {
 
     @SuppressWarnings("InfiniteLoopStatement")
     public static void main(String[] args){
-        String queueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersQueueName);
-//        new File(pdfFolder).mkdirs();
-//        new File(convertedFolder).mkdirs();
-        while (true) {
-            run(queueUrl);
+        String workersInQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersInQueueName);
+        String workersOutQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersOutQueueName);
+           while (true) {
+            run(workersInQueueUrl,workersOutQueueUrl);
         }
-
     }
 
-    private static void run(String queueUrl) {
+    private static void run( String workersInQueueUrl, String workersOutQueueUrl) {
         //▪ Get a message from an SQS queue.
-        List<Message> messages;
         do{
-             messages = lib.sqsGetMessagesFromQueue(queueUrl);
-        } while ( messages==null || messages.size()<=0);
-
-        for (Message m: messages) { //terminate in case the manager sends a termination message
-            if(m.body().startsWith("terminate")){
-                System.out.println("found termination");
-                AwsBundle.getInstance().terminateCurrentInstance();
-                System.exit(1);
+            startMessage = lib.sqsGetMessageFromQueue(workersInQueueUrl);
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ignored) {
             }
-        }
+        } while ( startMessage==null );
 
-        //▪ Download the PDF file indicated in the message.
+        if (startMessage.body().startsWith("terminate")){
+            System.out.println("found termination");
+            AwsBundle.getInstance().terminateCurrentInstance();
+            System.exit(1);
+        }
+        lib.changeVisibility(startMessage,workersInQueueUrl,60/*1min*/);
         String[] splitArray;
-        int i = randomIntFromInterval(0, messages.size() - 1);
-        Message message = messages.get(i);
-        int count =0;
-        while (!message.body().startsWith("in\t")) {
-            do{
-                messages = lib.sqsGetMessagesFromQueue(queueUrl);
-            } while ( messages==null || messages.size()<=0);
-            while (!message.body().startsWith("in\t")) {
-                i = randomIntFromInterval(0, messages.size() - 1);
-                message = messages.get(i);
-                count++;
-                if (messages.size() < count)
-                    break;
-            }
-        }
-        startMessage = message;
-
-        splitArray = message.body().split("\t");
+        splitArray = startMessage.body().split("\t");
         outputQueue = splitArray[1];
         operation = splitArray[2];
         pdfUrlInputFile = splitArray[3];
-        System.out.println(message.body() + "\n");
-        downloadPdf(pdfUrlInputFile, pdfFolder,queueUrl);
+        System.out.println(startMessage.body() + "\n");
+        //▪ Download the PDF file indicated in the message.
+        downloadPdf(pdfUrlInputFile, pdfFolder,workersOutQueueUrl);
+
         //▪ Perform the operation requested on the file.
         String[] arrSplit = pdfUrlInputFile.split("/", 30); // 30 is arbitrary
         String nameOfTheFileWithDot = arrSplit[arrSplit.length - 1]; //it looks like shelly.pdf
@@ -92,22 +79,22 @@ public class worker {
         if (nameOfTheFileWithDot.indexOf(".") > 0)
             nameOfTheFile = nameOfTheFileWithDot.substring(0, nameOfTheFileWithDot.lastIndexOf("."));
 
-        String format = convertPdf(nameOfTheFile, operation,queueUrl);
+        String format = convertPdf(nameOfTheFile, operation,workersOutQueueUrl);
         if (format==null)
             return;
         //▪ Upload the resulting output file to S3.
         try {
             lib.createAndUploadS3Bucket(workersResultsBucketName, workersResultsKey+nameOfTheFile, new File(convertedFolder+"\\"+nameOfTheFile + format));
         }catch (Exception e){
-            sendErrorMsg(queueUrl,e.getMessage());
+            sendErrorMsg(workersOutQueueUrl,e.getMessage());
             return;
         }
         //▪ Put a message in an SQS queue indicating the original URL of the PDF, the S3 url of the new
         // image file, and the operation that was performed.
-        lib.sqsSendMessage(queueUrl, "out\t"+outputQueue + "\t" + pdfUrlInputFile + "\t"
+        lib.sqsSendMessage(workersOutQueueUrl, outputQueue + "\t" + pdfUrlInputFile + "\t"
                 + workersResultsBucketName + "\t" + workersResultsKey+nameOfTheFile +"\t" + operation);
         //▪ remove the processed message from the SQS queue.
-        lib.sqsDeleteMessage(queueUrl, message);
+        lib.sqsDeleteMessage(workersInQueueUrl, startMessage);
     }
 
     public static int randomIntFromInterval(int min, int max) { // min and max included
@@ -118,20 +105,14 @@ public class worker {
     public static void downloadPdf(String urlStr, String destinationPath, String queueUrl){
         String[] arrSplit=urlStr.split("/",30); // 30 is arbitrary
         String name = arrSplit[arrSplit.length-1];
-//        try{
-//            FileUtils.copyURLToFile(new URL(url), new File(destinationPath+"\\"+name));
-//        } catch (IOException e) {
-//            //send a message to the manager
-//            sendErrorMsg(queueUrl,e.getMessage());
-//        }
         try {
             URL url = new URL(urlStr);
             try (InputStream in = url.openStream()) {
                 Files.copy(in, Paths.get(name), StandardCopyOption.REPLACE_EXISTING);
-            } catch (IOException e) {
+            } catch (Exception e) {
                 sendErrorMsg(queueUrl,e.getMessage());
             }
-        }catch(MalformedURLException e){
+        }catch(Exception e){
             sendErrorMsg(queueUrl,e.getMessage());
         }
     }

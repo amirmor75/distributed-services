@@ -19,7 +19,9 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AwsLib {
     private final Ec2Client ec2 = Ec2Client.create();
@@ -58,40 +60,7 @@ public class AwsLib {
         }
 
     }
-    public String sqsCreateAndGetQueueUrlFromName ( String queueName) {
 
-        try {
-            CreateQueueRequest request = CreateQueueRequest.builder()
-                    .queueName(queueName)
-                    .build();
-            CreateQueueResponse create_result = sqs.createQueue(request);
-            GetQueueUrlRequest getQueueRequest = GetQueueUrlRequest.builder()
-                    .queueName(queueName)
-                    .build();
-            return sqs.getQueueUrl(getQueueRequest).queueUrl();
-        } catch (Exception e) {
-            System.out.println("error create queue "+queueName+" "+e.getMessage());
-            deleteAllQueues();
-            System.exit(1);
-        }
-        return null;
-    }
-    public List<Message> sqsGetMessagesFromQueue( String queueUrl) {
-        try{
-            ReceiveMessageRequest receiveRequest = ReceiveMessageRequest.builder()
-                    .queueUrl(queueUrl)
-                    .build();
-            return sqs.receiveMessage(receiveRequest).messages();
-        }catch (SqsException e){
-            System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
-            System.exit(1);
-        }catch (Exception e){
-
-        System.out.println("sqsGetMessagesFromQueue "+e.getClass().getName()+" "+queueUrl+e.getMessage());
-        System.exit(1);
-    }
-        return null;
-    }
     public void createAndUploadS3Bucket( String bucketName,String key, File file){
         try{
             software.amazon.awssdk.regions.Region region = Region.US_EAST_1;
@@ -125,6 +94,45 @@ public class AwsLib {
 
         } catch (Ec2Exception ignored) {}
     }
+
+    public String sqsCreateAndGetQueueUrlFromName ( String queueName) {
+
+        try {
+            Map<QueueAttributeName, String> attributes = new HashMap<QueueAttributeName, String>();
+            attributes.put(QueueAttributeName.FIFO_QUEUE, "true");
+            attributes.put(QueueAttributeName.CONTENT_BASED_DEDUPLICATION, "true");
+            CreateQueueRequest request = CreateQueueRequest.builder()
+                    .queueName(queueName)
+                    .attributes(attributes)
+                    .build();
+            CreateQueueResponse create_result = sqs.createQueue(request);
+            GetQueueUrlRequest getQueueRequest = GetQueueUrlRequest.builder()
+                    .queueName(queueName)
+                    .build();
+            return sqs.getQueueUrl(getQueueRequest).queueUrl();
+        } catch (Exception e) {
+            System.out.println("error create queue "+queueName+e.getMessage());
+            System.exit(1);
+        }
+        return null;
+    }
+
+    public Message sqsGetMessageFromQueue( String queueUrl) {
+        try{
+            return sqs.receiveMessage(ReceiveMessageRequest.builder()
+                    .waitTimeSeconds(3)
+                    .queueUrl(queueUrl)
+                    .build()).messages().get(0);
+        }catch (QueueDoesNotExistException e){
+            System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
+            System.exit(1);
+        }catch (Exception e){
+            System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
+            return null;
+        }
+        return null;
+    }
+
 
 
     public void ec2CreateManager(String instanceName, String userScript){
@@ -186,12 +194,5 @@ public class AwsLib {
             System.out.println("downloadS3File failed "+bucketName+" "+keyName+" "+fileName +" "+ e.getMessage());
         }
         return null;
-    }
-    public void deleteAllQueues() {
-        try{
-            for (String qUrl : sqs.listQueues().queueUrls())
-                sqsDeleteQueue(qUrl);
-        }catch(Exception e){
-        }
     }
 }
