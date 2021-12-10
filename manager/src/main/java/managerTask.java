@@ -11,11 +11,11 @@ import java.util.List;
 
 public class managerTask implements Runnable{
     private final AwsLib lib = AwsLib.getInstance();
-    private static final String managerInputQueueName= "manager-input-queue";
+    private static final String managerInputQueueName= "manager-input-queue.fifo";
     private static Message startMessage;
 
-    private final static String workersInQueueName = "workers-in-queue";
-    private final static String workersOutQueueName = "workers-out-queue";
+    private final static String workersInQueueName = "workers-in-queue.fifo";
+    private final static String workersOutQueueName = "workers-out-queue.fifo";
 
     private final String workersInQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersInQueueName);
     private final String workersOutQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersOutQueueName);
@@ -41,7 +41,7 @@ public class managerTask implements Runnable{
         String outputQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(resultQueueName);
         String outputKeyName = resultQueueName ;
         String mangerQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(managerInputQueueName);
-        lib.changeVisibility(startMessage,mangerQueueUrl,1800/*30min*/);
+        lib.sqsChangeVisibility(startMessage,mangerQueueUrl,1800/*30min*/);
 
         // Creates an SQS message for each URL in the input file together with the operation
         //that should be performed on it.

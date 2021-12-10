@@ -16,24 +16,17 @@ import java.util.concurrent.atomic.AtomicLong;
 
 @SuppressWarnings("InfiniteLoopStatement")
 public class Manager {
-    private static final String managerInputQueueName = "manager-input-queue";
+    private static final String managerInputQueueName = "manager-input-queue.fifo";
     private static final AwsLib lib = AwsLib.getInstance();
 
-    private final static String workersInQueueName = "workers-in-queue";
-    private final static String workersOutQueueName = "workers-out-queue";
+    private final static String workersInQueueName = "workers-in-queue.fifo";
 
     private static final String workersInQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersInQueueName);
-    private static final String workersOutQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersOutQueueName);
-
-//    private static final String summeryFolder = ".\\summeryFiles";
-//    private static final String inputFolder = ".\\inputFiles";
 
     private static final AwsBundle awsBundle = AwsBundle.getInstance();
 
 
     public static void main(String[] args) {
-//        new File(summeryFolder).mkdirs();
-//        new File(inputFolder).mkdirs();
         run();
     }
 
@@ -51,7 +44,12 @@ public class Manager {
 
         while (true) {
             Message msg = lib.sqsGetMessageFromQueue(mangerQueueUrl);
-
+            if (msg==null){
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException ignore) {}
+                continue;
+            }
             if (msg.body().startsWith("terminate")) {
                 lib.sqsSendMessage(workersInQueueUrl, "terminate");
                 System.out.println("waiting for workers to die before me");

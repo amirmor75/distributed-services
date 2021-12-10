@@ -25,8 +25,8 @@ public class worker {
     private final static String workersResultsBucketName = "workers-results-bucket";
     private final static String workersResultsKey = "workers-results-key";
 
-    private final static String workersInQueueName = "workers-in-queue";
-    private final static String workersOutQueueName = "workers-out-queue";
+    private final static String workersInQueueName = "workers-in-queue.fifo";
+    private final static String workersOutQueueName = "workers-out-queue.fifo";
 
     private final String workersInQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersInQueueName);
     private final String workersOutQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersOutQueueName);
@@ -62,12 +62,12 @@ public class worker {
             AwsBundle.getInstance().terminateCurrentInstance();
             System.exit(1);
         }
-        lib.changeVisibility(startMessage,workersInQueueUrl,60/*1min*/);
+        lib.changeVisibility(startMessage,workersInQueueUrl,90/*1min*/);
         String[] splitArray;
         splitArray = startMessage.body().split("\t");
-        outputQueue = splitArray[1];
-        operation = splitArray[2];
-        pdfUrlInputFile = splitArray[3];
+        outputQueue = splitArray[0];
+        operation = splitArray[1];
+        pdfUrlInputFile = splitArray[2];
         System.out.println(startMessage.body() + "\n");
         //▪ Download the PDF file indicated in the message.
         downloadPdf(pdfUrlInputFile, pdfFolder,workersOutQueueUrl);
@@ -96,11 +96,6 @@ public class worker {
         //▪ remove the processed message from the SQS queue.
         lib.sqsDeleteMessage(workersInQueueUrl, startMessage);
     }
-
-    public static int randomIntFromInterval(int min, int max) { // min and max included
-        return (int) Math.floor(Math.random() * (max - min + 1) + min);
-    }
-
 
     public static void downloadPdf(String urlStr, String destinationPath, String queueUrl){
         String[] arrSplit=urlStr.split("/",30); // 30 is arbitrary
@@ -224,7 +219,7 @@ public class worker {
 
     private static void sendErrorMsg(String queueUrl,String errorMsg){
         System.out.println(errorMsg);
-        lib.sqsSendMessage(queueUrl,"out\t"+outputQueue+
+        lib.sqsSendMessage(queueUrl,outputQueue+
                 '\t'+pdfUrlInputFile+'\t'+"error"+'\t'+errorMsg+'\t'+operation);
         lib.sqsDeleteMessage(queueUrl, startMessage);
     }

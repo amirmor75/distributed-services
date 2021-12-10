@@ -26,55 +26,14 @@ public class AwsLib {
 
     private  final SqsClient sqs = SqsClient.builder().region(Region.US_EAST_1).build();
     private final S3Client s3 = S3Client.builder().region(Region.US_EAST_1).build();
-
-
-
     public static   AwsLib getInstance() {
         return instance;
     }
-    public  void sqsSendMessages( String queueUrl,List<String> messages) {
-        for (String body : messages) {
-            SendMessageRequest send_msg_request = SendMessageRequest.builder()
-                    .queueUrl(queueUrl)
-                    .messageBody(body)
-                    .delaySeconds(2)
-                    .build();
 
 
-            try {
-                sqs.sendMessage(send_msg_request);
-            } catch (Exception e) {
-                System.out.println("error deleting msg:" +body + "from queue " + queueUrl + e.getMessage());
-            }
-        }
-    }
-    public void sqsSendMessage( String queueUrl,String body){
-        SendMessageRequest send_msg_request = SendMessageRequest.builder()
-                .queueUrl(queueUrl)
-                .messageBody(body)
-                .delaySeconds(5)
-                .build();
-        try {
-            sqs.sendMessage(send_msg_request);
-        } catch (Exception e) {
-            System.out.println("error deleting msg:" +body + "from queue " + queueUrl + e.getMessage());
-        }
-    }
-    public  void sqsDeleteMessage( String queueUrl,Message m){
 
-        try{
-            DeleteMessageRequest deleteRequest = DeleteMessageRequest.builder()
-                    .queueUrl(queueUrl)
-                    .receiptHandle(m.receiptHandle())
-                    .build();
-            sqs.deleteMessage(deleteRequest);
-        }
-        catch(Exception e){
-            System.out.println("error deleting msg:"+ m.body()+"from queue "+queueUrl + e.getMessage());
-        }
 
-    }
-
+    //sqs
     public String sqsCreateAndGetQueueUrlFromName ( String queueName) {
 
         try {
@@ -89,31 +48,60 @@ public class AwsLib {
             GetQueueUrlRequest getQueueRequest = GetQueueUrlRequest.builder()
                     .queueName(queueName)
                     .build();
+
             return sqs.getQueueUrl(getQueueRequest).queueUrl();
         } catch (Exception e) {
-            System.out.println("error create queue "+queueName+e.getMessage());
+            System.out.println("error create queue "+queueName+" "+e.getMessage());
             System.exit(1);
         }
         return null;
     }
 
+    public void sqsSendMessage( String queueUrl,String body){
+        SendMessageRequest send_msg_request = SendMessageRequest.builder()
+                .queueUrl(queueUrl)
+                .messageBody(body)
+                .messageGroupId("generic")//required for fifo
+                .build();
+        try {
+            sqs.sendMessage(send_msg_request);
+        } catch (Exception e) {
+            System.out.println("error sending msg:" +body + "from queue " + queueUrl + e.getMessage());
+        }
+    }
+
+    public  void sqsDeleteMessage( String queueUrl,Message m){
+
+        try{
+            DeleteMessageRequest deleteRequest = DeleteMessageRequest.builder()
+                    .queueUrl(queueUrl)
+                    .receiptHandle(m.receiptHandle())
+                    .build();
+            sqs.deleteMessage(deleteRequest);
+        }
+        catch(Exception e){
+            System.out.println("error deleting msg:"+ m.body()+"from queue "+queueUrl +" " + e.getMessage());
+        }
+    }
+
     public Message sqsGetMessageFromQueue( String queueUrl) {
         try{
-            return sqs.receiveMessage(ReceiveMessageRequest.builder()
+            List<Message> msgl = sqs.receiveMessage(ReceiveMessageRequest.builder()
                     .waitTimeSeconds(3)
                     .queueUrl(queueUrl)
-                    .build()).messages().get(0);
+                    .build()).messages();
+            return msgl==null || msgl.size()<=0 ? null : msgl.get(0);
         }catch (QueueDoesNotExistException e){
             System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
-            AwsBundle.getInstance().terminateCurrentInstance();
             System.exit(1);
         }catch (Exception e){
-        System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
-        return null;
-    }
+            System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
+            return null;
+        }
         return null;
     }
 
+    //s3
     public void createAndUploadS3Bucket( String bucketName,String key, File file){
         try{
             software.amazon.awssdk.regions.Region region = Region.US_EAST_1;
@@ -154,10 +142,7 @@ public class AwsLib {
                 queueUrl(queue_url).receiptHandle(receipt).build());
     }
 
-
-
-
-
+    //ec2
     public static void terminateEC2( Ec2Client ec2, String instanceID) {
         try {
             TerminateInstancesRequest ti = TerminateInstancesRequest.builder()

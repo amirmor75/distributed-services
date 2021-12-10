@@ -39,18 +39,59 @@ public class AwsLib {
     public static   AwsLib getInstance() {
         return instance;
     }
+    //sqs
+    public String sqsCreateAndGetQueueUrlFromName ( String queueName) {
+
+        try {
+            Map<QueueAttributeName, String> attributes = new HashMap<QueueAttributeName, String>();
+            attributes.put(QueueAttributeName.FIFO_QUEUE, "true");
+            attributes.put(QueueAttributeName.CONTENT_BASED_DEDUPLICATION, "true");
+            CreateQueueRequest request = CreateQueueRequest.builder()
+                    .queueName(queueName)
+                    .attributes(attributes)
+                    .build();
+            CreateQueueResponse create_result = sqs.createQueue(request);
+            GetQueueUrlRequest getQueueRequest = GetQueueUrlRequest.builder()
+                    .queueName(queueName)
+                    .build();
+            return sqs.getQueueUrl(getQueueRequest).queueUrl();
+        } catch (Exception e) {
+            System.out.println("error create queue "+queueName+" "+e.getMessage());
+            System.exit(1);
+        }
+        return null;
+    }
+
     public void sqsSendMessage( String queueUrl,String body){
         SendMessageRequest send_msg_request = SendMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .messageBody(body)
-                .delaySeconds(5)
+                .messageGroupId("generic")//required for fifo
                 .build();
         try {
             sqs.sendMessage(send_msg_request);
         } catch (Exception e) {
-            System.out.println("error deleting msg:" +body + "from queue " + queueUrl + e.getMessage());
+            System.out.println("error sending msg:" +body + "from queue " + queueUrl + e.getMessage());
         }
     }
+
+    public Message sqsGetMessageFromQueue( String queueUrl) {
+        try{
+            List<Message> msgl = sqs.receiveMessage(ReceiveMessageRequest.builder()
+                    .waitTimeSeconds(3)
+                    .queueUrl(queueUrl)
+                    .build()).messages();
+            return msgl==null || msgl.size()<=0 ? null : msgl.get(0);
+        }catch (QueueDoesNotExistException e){
+            System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
+            System.exit(1);
+        }catch (Exception e){
+            System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
+            return null;
+        }
+        return null;
+    }
+
     public void sqsDeleteQueue(String queueUrl){
         try{
             sqs.deleteQueue(DeleteQueueRequest.builder().queueUrl(queueUrl).build());
@@ -61,6 +102,12 @@ public class AwsLib {
 
     }
 
+    public void sqsDeleteAllQueues() {
+        for (String qUrl : sqs.listQueues().queueUrls())
+            sqsDeleteQueue(qUrl);
+    }
+
+    //s3
     public void createAndUploadS3Bucket( String bucketName,String key, File file){
         try{
             software.amazon.awssdk.regions.Region region = Region.US_EAST_1;
@@ -81,7 +128,31 @@ public class AwsLib {
         }
     }
 
-    public void createEC2KeyPair( String keyName) {
+    public  File downloadS3File( String bucketName,String keyName ,String fileName){
+        try {
+            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(keyName)
+                    .build();
+            ResponseInputStream<GetObjectResponse> responseInputStream = s3.getObject(getObjectRequest);
+            File file = new File(fileName);
+            InputStream inputStream = new ByteArrayInputStream(responseInputStream.readAllBytes());
+            try(OutputStream outputStream = new FileOutputStream(file)){
+                IOUtils.copy(inputStream, outputStream);
+                return file;
+            } catch (FileNotFoundException e) {
+                // handle exception here
+            } catch (IOException e) {
+                // handle exception here
+            }
+        } catch (Exception e) {
+            System.out.println("downloadS3File failed "+bucketName+" "+keyName+" "+fileName +" "+ e.getMessage());
+        }
+        return null;
+    }
+
+    //ec2
+    public void ec2CreateKeyPair( String keyName) {
 
         try {
             CreateKeyPairRequest request = CreateKeyPairRequest.builder()
@@ -95,50 +166,10 @@ public class AwsLib {
         } catch (Ec2Exception ignored) {}
     }
 
-    public String sqsCreateAndGetQueueUrlFromName ( String queueName) {
-
-        try {
-            Map<QueueAttributeName, String> attributes = new HashMap<QueueAttributeName, String>();
-            attributes.put(QueueAttributeName.FIFO_QUEUE, "true");
-            attributes.put(QueueAttributeName.CONTENT_BASED_DEDUPLICATION, "true");
-            CreateQueueRequest request = CreateQueueRequest.builder()
-                    .queueName(queueName)
-                    .attributes(attributes)
-                    .build();
-            CreateQueueResponse create_result = sqs.createQueue(request);
-            GetQueueUrlRequest getQueueRequest = GetQueueUrlRequest.builder()
-                    .queueName(queueName)
-                    .build();
-            return sqs.getQueueUrl(getQueueRequest).queueUrl();
-        } catch (Exception e) {
-            System.out.println("error create queue "+queueName+e.getMessage());
-            System.exit(1);
-        }
-        return null;
-    }
-
-    public Message sqsGetMessageFromQueue( String queueUrl) {
-        try{
-            return sqs.receiveMessage(ReceiveMessageRequest.builder()
-                    .waitTimeSeconds(3)
-                    .queueUrl(queueUrl)
-                    .build()).messages().get(0);
-        }catch (QueueDoesNotExistException e){
-            System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
-            System.exit(1);
-        }catch (Exception e){
-            System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
-            return null;
-        }
-        return null;
-    }
-
-
-
     public void ec2CreateManager(String instanceName, String userScript){
 
         String keyName = "boobik";
-        createEC2KeyPair( keyName);
+        ec2CreateKeyPair( keyName);
         String amiId = /*args[1]*/ "ami-01cc34ab2709337aa";
 
         try{
@@ -172,27 +203,5 @@ public class AwsLib {
         }catch(Exception e){
             System.out.println("thread "+ Thread.currentThread().getId() +" launching instances failed err msg: "+e.getMessage());
         }
-    }
-    public  File downloadS3File( String bucketName,String keyName ,String fileName){
-        try {
-            GetObjectRequest getObjectRequest = GetObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(keyName)
-                    .build();
-            ResponseInputStream<GetObjectResponse> responseInputStream = s3.getObject(getObjectRequest);
-            File file = new File(fileName);
-            InputStream inputStream = new ByteArrayInputStream(responseInputStream.readAllBytes());
-            try(OutputStream outputStream = new FileOutputStream(file)){
-                IOUtils.copy(inputStream, outputStream);
-                return file;
-            } catch (FileNotFoundException e) {
-                // handle exception here
-            } catch (IOException e) {
-                // handle exception here
-            }
-        } catch (Exception e) {
-            System.out.println("downloadS3File failed "+bucketName+" "+keyName+" "+fileName +" "+ e.getMessage());
-        }
-        return null;
     }
 }

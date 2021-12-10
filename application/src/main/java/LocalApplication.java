@@ -1,19 +1,10 @@
-//import javafx.util.Pair;
 
-import com.amazonaws.services.ec2.model.*;
-import software.amazon.awssdk.core.sync.ResponseTransformer;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.ec2.model.CreateKeyPairRequest;
-import software.amazon.awssdk.services.ec2.model.Ec2Exception;
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.GetObjectRequest;
-import software.amazon.awssdk.services.sqs.SqsClient;
+
 import software.amazon.awssdk.services.sqs.model.Message;
 
 
 import java.awt.*;
 import java.io.*;
-import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -24,7 +15,7 @@ public class LocalApplication {
     private static final String bucketManagerName= "manager-input-bucket";
     private static final String keyManagerName= "manager-input-bucket-key";
 
-    private static final String managerInputQueueName= "manager-input-queue";
+    private static final String managerInputQueueName= "manager-input-queue.fifo";
     private static final String outputQueueName="local-app-result-queue";
 
     private static final String jarsBucket = "manager-worker-jar-bucket";
@@ -34,6 +25,10 @@ public class LocalApplication {
 
 
     public static void main(String[] args) {
+        if(args[0].equals("term")){
+            lib.sqsDeleteAllQueues();
+            System.exit(0);
+        }
         if (args.length < 3) {
             System.out.println("not enough arguments given!");
             System.exit(1);
@@ -50,7 +45,7 @@ public class LocalApplication {
     private static void run(String inputFileName,String outputFileName, int n,boolean terminate) {
         long localUnique = uniqueCurrentTimeMS();
         String localKeyName = keyManagerName + localUnique ;
-        String localOutputQueueName = outputQueueName + localUnique;
+        String localOutputQueueName = outputQueueName + localUnique+".fifo"; // important for
         String localOutputQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(localOutputQueueName);
         File inputfile = new File(inputFileName);
 
@@ -130,7 +125,7 @@ public class LocalApplication {
                 "aws s3 cp s3://"+jarsBucket+"/manager.jar /home/ec2-user\n" +
                 "cd /home/ec2-user\n"+
                 "java -jar manager.jar >> a.out\n";
-        lib.ec2CreateManager("manager", "");
+        lib.ec2CreateManager("manager", managerScript);
     }
 //    private static void uploadManagerWorkerCodeToS3() {
 //        lib.createAndUploadS3Bucket(managerBucketcode,managerKey,new File("manager.jar"));
