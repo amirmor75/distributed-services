@@ -39,7 +39,7 @@ public class LocalApplication {
         int n = Integer.parseInt(args[2]);
         run(inputFileName,outputFileName,n,args.length==4);
 //        lib.createAndUploadS3Bucket(jarsBucket,"manager.jar",new File("jars/manager.jar"));
-////        lib.createAndUploadS3Bucket(jarsBucket,"worker.jar",new File("jars/worker.jar"));
+//        lib.createAndUploadS3Bucket(jarsBucket,"worker.jar",new File("jars/worker.jar"));
     }
 
     private static void run(String inputFileName,String outputFileName, int n,boolean terminate) {
@@ -51,7 +51,8 @@ public class LocalApplication {
 
         //Checks if a Manager node is active on the EC2 cloud. If it is not, the application will start the
         //manager node.
-        checkAndCreateManagerNodeActive();
+
+        //checkAndCreateManagerNodeActive();
 
         //Uploads the file to S3
         lib.createAndUploadS3Bucket(bucketManagerName,localKeyName,inputfile);
@@ -60,7 +61,7 @@ public class LocalApplication {
         String managerQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(managerInputQueueName);
 
         //Sends a message to an SQS queue, stating the location of the file on S3 (=BUCKET_NAME)
-        lib.sqsSendMessage(managerQueueUrl, bucketManagerName+'\t'+localKeyName+'\t'+ localOutputQueueName +'\t'+n);
+        lib.sqsSendMessage(managerQueueUrl, bucketManagerName+'\t'+localKeyName+'\t'+ localOutputQueueName +'\t'+n,localOutputQueueName,localOutputQueueName);
 
         //Checks an SQS queue for a message indicating the process is done and the response (the
         //summary file) is available on S3.
@@ -83,7 +84,7 @@ public class LocalApplication {
         //In case of terminate mode (as defined by the command-line argument), sends a termination
         //message to the Manager.
         if(terminate){
-            lib.sqsSendMessage(managerQueueUrl,"terminate");
+            lib.sqsSendMessage(managerQueueUrl,"terminate",localOutputQueueName+"term",localOutputQueueName+"term");
             AwsBundle.getInstance().deleteBucket(bucketManagerName);
         }
     }
@@ -101,7 +102,7 @@ public class LocalApplication {
                 continue;
             }
         }
-        return null;
+        return message;
     }
 
     private static void checkAndCreateManagerNodeActive(){

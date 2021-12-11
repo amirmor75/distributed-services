@@ -1,4 +1,3 @@
-import org.apache.commons.io.FileUtils;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.ImageType;
 import org.apache.pdfbox.rendering.PDFRenderer;
@@ -7,12 +6,14 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.tools.imageio.ImageIOUtil;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
+import java.sql.Time;
+import java.time.LocalDateTime;
+import java.util.Timer;
 
 import org.apache.pdfbox.tools.PDFText2HTML;
 import software.amazon.awssdk.services.sqs.model.Message;
@@ -28,8 +29,7 @@ public class worker {
     private final static String workersInQueueName = "workers-in-queue.fifo";
     private final static String workersOutQueueName = "workers-out-queue.fifo";
 
-    private final String workersInQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersInQueueName);
-    private final String workersOutQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersOutQueueName);
+
 
     private final static AwsLib lib = AwsLib.getInstance();
     private static Message startMessage ;
@@ -49,20 +49,23 @@ public class worker {
 
     private static void run( String workersInQueueUrl, String workersOutQueueUrl) {
         //▪ Get a message from an SQS queue.
-        do{
+        while (true){
             startMessage = lib.sqsGetMessageFromQueue(workersInQueueUrl);
+            if(startMessage!=null)
+                break;
             try {
-                Thread.sleep(1000);
+                Thread.sleep(100);
             } catch (InterruptedException ignored) {
             }
-        } while ( startMessage==null );
+        }
+        lib.changeVisibility(startMessage,workersInQueueUrl,120/*2min*/);
 
         if (startMessage.body().startsWith("terminate")){
             System.out.println("found termination");
+            lib.changeVisibility(startMessage,workersInQueueUrl,0/*2min*/);
             AwsBundle.getInstance().terminateCurrentInstance();
             System.exit(1);
         }
-        lib.changeVisibility(startMessage,workersInQueueUrl,90/*1min*/);
         String[] splitArray;
         splitArray = startMessage.body().split("\t");
         outputQueue = splitArray[0];
@@ -92,7 +95,7 @@ public class worker {
         //▪ Put a message in an SQS queue indicating the original URL of the PDF, the S3 url of the new
         // image file, and the operation that was performed.
         lib.sqsSendMessage(workersOutQueueUrl, outputQueue + "\t" + pdfUrlInputFile + "\t"
-                + workersResultsBucketName + "\t" + workersResultsKey+nameOfTheFile +"\t" + operation);
+                + workersResultsBucketName + "\t" + workersResultsKey+nameOfTheFile +"\t" + operation , outputQueue+nameOfTheFile ,outputQueue+nameOfTheFile  );
         //▪ remove the processed message from the SQS queue.
         lib.sqsDeleteMessage(workersInQueueUrl, startMessage);
     }
@@ -102,7 +105,10 @@ public class worker {
         String name = arrSplit[arrSplit.length-1];
         try {
             URL url = new URL(urlStr);
-            try (InputStream in = url.openStream()) {
+            URLConnection connection = url.openConnection();
+            connection.setConnectTimeout(10000);//10 sec til time out
+            connection.getInputStream();
+            try (InputStream in = connection.getInputStream()) {
                 Files.copy(in, Paths.get(name), StandardCopyOption.REPLACE_EXISTING);
             } catch (Exception e) {
                 sendErrorMsg(queueUrl,e.getMessage());
@@ -220,7 +226,7 @@ public class worker {
     private static void sendErrorMsg(String queueUrl,String errorMsg){
         System.out.println(errorMsg);
         lib.sqsSendMessage(queueUrl,outputQueue+
-                '\t'+pdfUrlInputFile+'\t'+"error"+'\t'+errorMsg+'\t'+operation);
+                '\t'+pdfUrlInputFile+'\t'+"error"+'\t'+errorMsg+'\t'+operation,outputQueue+ LocalDateTime.now(),outputQueue+ LocalDateTime.now() );
         lib.sqsDeleteMessage(queueUrl, startMessage);
     }
 

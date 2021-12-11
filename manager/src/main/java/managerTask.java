@@ -1,8 +1,4 @@
-import software.amazon.awssdk.services.ec2.Ec2Client;
-import software.amazon.awssdk.services.ec2.model.Ec2Exception;
-import software.amazon.awssdk.services.ec2.model.InstanceStateChange;
-import software.amazon.awssdk.services.ec2.model.TerminateInstancesRequest;
-import software.amazon.awssdk.services.ec2.model.TerminateInstancesResponse;
+
 import software.amazon.awssdk.services.sqs.model.Message;
 
 import java.io.*;
@@ -56,8 +52,9 @@ public class managerTask implements Runnable{
         int running = AwsBundle.getInstance().checkInstanceCount()-1;
         workersPoolSize = Math.min ( 19 - running, Math.max(workersPoolSize - running , 0));
         System.out.println("thread"+Thread.currentThread().getId()+" worker pool size:" + workersPoolSize);
-        for (int i = 0; i < workersPoolSize; i++)
-            lib.ec2CreateInstance("worker" +Thread.currentThread().getId()+ i);
+
+//        for (int i = 0; i < workersPoolSize; i++)
+//            lib.ec2CreateInstance("worker" +Thread.currentThread().getId()+ i);
 
         System.out.printf("sent %d messages\n",messageBodies.size());
 
@@ -65,12 +62,16 @@ public class managerTask implements Runnable{
         //in the input file have been processed.
         List<Message> workersOutputMessages = new LinkedList<>();
         while (workersOutputMessages.size() < messageBodies.size()) {
-            Message currMsg = lib.sqsGetMessageFromQueue(workersOutQueueUrl);
-            if(currMsg == null)
+            List<Message> currMsgl = lib.sqsGetMessagesFromQueue(workersOutQueueUrl);
+            if(currMsgl == null)
                 continue;
-            if ( currMsg.body().startsWith(resultQueueName+'\t') && !workersOutputMessages.contains(currMsg))
-                workersOutputMessages.add(currMsg);
-
+            for (Message currMsg:currMsgl){
+                if(currMsg == null)
+                    continue;
+                if ( currMsg.body().startsWith(resultQueueName+'\t'))
+                    lib.sqsDeleteMessage(workersOutQueueUrl,currMsg);
+                    workersOutputMessages.add(currMsg);
+            }
             try {
                 System.out.println("t"+Thread.currentThread().getId()+" got "+workersOutputMessages.size()+" messages");
                 Thread.sleep(5000);
@@ -85,7 +86,7 @@ public class managerTask implements Runnable{
         lib.createAndUploadS3Bucket( outputBucketName, outputKeyName, summery);
 
         // Manager posts an SQS message about the summary file
-        lib.sqsSendMessage(outputQueueUrl, outputBucketName + '\t'+ outputKeyName );
+        lib.sqsSendMessage(outputQueueUrl, outputBucketName + '\t'+ outputKeyName , "res","res" );
         lib.sqsDeleteMessage(mangerQueueUrl, startMessage);
         lib.sqsDeleteMessages(workersOutQueueUrl,workersOutputMessages);
     }

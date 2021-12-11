@@ -57,11 +57,12 @@ public class AwsLib {
         return null;
     }
 
-    public void sqsSendMessage( String queueUrl,String body){
+    public void sqsSendMessage( String queueUrl,String body,String dupId,String groupId){
         SendMessageRequest send_msg_request = SendMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .messageBody(body)
-                .messageGroupId("generic")//required for fifo
+                .messageGroupId(groupId)//required for fifo
+                .messageDeduplicationId(dupId)
                 .build();
         try {
             sqs.sendMessage(send_msg_request);
@@ -87,7 +88,7 @@ public class AwsLib {
     public Message sqsGetMessageFromQueue( String queueUrl) {
         try{
             List<Message> msgl = sqs.receiveMessage(ReceiveMessageRequest.builder()
-                    .waitTimeSeconds(3)
+                    .waitTimeSeconds(1)
                     .queueUrl(queueUrl)
                     .build()).messages();
             return msgl==null || msgl.size()<=0 ? null : msgl.get(0);
@@ -135,11 +136,18 @@ public class AwsLib {
 
     }
 
-    public void changeVisibility(Message msg,String queue_url,int timeOut){
-        String receipt = msg.receiptHandle();
-        sqs.changeMessageVisibility(ChangeMessageVisibilityRequest.builder()
-                .visibilityTimeout(timeOut).
-                queueUrl(queue_url).receiptHandle(receipt).build());
+    public void changeVisibility(Message msg,String queueUrl,int timeOut){
+        try{
+            String receipt = msg.receiptHandle();
+            sqs.changeMessageVisibility(ChangeMessageVisibilityRequest.builder()
+                    .visibilityTimeout(timeOut)
+                    .queueUrl(queueUrl)
+                    .receiptHandle(receipt)
+                    .build());
+        }catch (Exception e){
+            System.out.println(e.getMessage());
+        }
+
     }
 
     //ec2

@@ -1,5 +1,6 @@
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.IOUtils;
+import org.joda.time.DateTime;
 import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
@@ -63,11 +64,12 @@ public class AwsLib {
         return null;
     }
 
-    public void sqsSendMessage( String queueUrl,String body){
+    public void sqsSendMessage( String queueUrl,String body,String dupId,String groupId){
         SendMessageRequest send_msg_request = SendMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .messageBody(body)
-                .messageGroupId("generic")//required for fifo
+                .messageGroupId(groupId)//required for fifo
+                .messageDeduplicationId(dupId)
                 .build();
         try {
             sqs.sendMessage(send_msg_request);
@@ -78,7 +80,7 @@ public class AwsLib {
 
     public  void sqsSendMessages( String queueUrl,List<String> messages) {
         for (String body : messages)
-            sqsSendMessage(queueUrl,body);
+            sqsSendMessage(queueUrl,body, body.substring(0,5)+DateTime.now(), body.substring(0,5)+DateTime.now());
     }
     public  void sqsDeleteMessages( String queueUrl,List<Message> messages){
         for (Message m : messages) {
@@ -86,8 +88,6 @@ public class AwsLib {
                     .queueUrl(queueUrl)
                     .receiptHandle(m.receiptHandle())
                     .build();
-            sqs.deleteMessage(deleteRequest);
-
             try {
                 sqs.deleteMessage(deleteRequest);
             } catch (Exception e) {
@@ -135,6 +135,24 @@ public class AwsLib {
         }
         return null;
     }
+    public List<Message> sqsGetMessagesFromQueue( String queueUrl) {
+        try{
+            List<Message> msgl = sqs.receiveMessage(ReceiveMessageRequest.builder()
+                    .waitTimeSeconds(1)
+                    .queueUrl(queueUrl)
+                    .build()).messages();
+            return msgl==null || msgl.size()<=0 ? null : msgl;
+        }catch (QueueDoesNotExistException e){
+            System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
+            System.exit(1);
+        }catch (Exception e){
+            System.out.println("sqsGetMessagesFromQueue "+queueUrl+e.getMessage());
+            return null;
+        }
+        return null;
+    }
+
+
     public void sqsChangeVisibility(Message msg,String queue_url,int timeOut){
         String receipt = msg.receiptHandle();
         sqs.changeMessageVisibility(ChangeMessageVisibilityRequest.builder()

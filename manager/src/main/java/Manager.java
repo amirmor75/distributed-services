@@ -51,7 +51,7 @@ public class Manager {
                 continue;
             }
             if (msg.body().startsWith("terminate")) {
-                lib.sqsSendMessage(workersInQueueUrl, "terminate");
+                lib.sqsSendMessage(workersInQueueUrl, "terminate","termId","termId");
                 System.out.println("waiting for workers to die before me");
                 while (awsBundle.checkInstanceCount() > 1) ;
                 System.out.println("workers died");

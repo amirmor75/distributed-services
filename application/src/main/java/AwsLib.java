@@ -62,11 +62,12 @@ public class AwsLib {
         return null;
     }
 
-    public void sqsSendMessage( String queueUrl,String body){
+    public void sqsSendMessage( String queueUrl,String body,String dupId,String groupId){
         SendMessageRequest send_msg_request = SendMessageRequest.builder()
                 .queueUrl(queueUrl)
                 .messageBody(body)
-                .messageGroupId("generic")//required for fifo
+                .messageGroupId(groupId)//required for fifo
+                .messageDeduplicationId(dupId)
                 .build();
         try {
             sqs.sendMessage(send_msg_request);
@@ -103,8 +104,13 @@ public class AwsLib {
     }
 
     public void sqsDeleteAllQueues() {
-        for (String qUrl : sqs.listQueues().queueUrls())
-            sqsDeleteQueue(qUrl);
+        try{
+            for (String qUrl : sqs.listQueues().queueUrls())
+                sqsDeleteQueue(qUrl);
+        }catch(Exception ignored){
+
+        }
+
     }
 
     //s3
