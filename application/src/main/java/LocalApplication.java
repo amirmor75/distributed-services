@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class LocalApplication {
 
-    private static final String bucketManagerName= "manager-input-bucket";
+    private static final String bucketManagerName= "manager-input-bucket2";
     private static final String keyManagerName= "manager-input-bucket-key";
 
     private static final String managerInputQueueName= "manager-input-queue.fifo";
@@ -38,8 +38,9 @@ public class LocalApplication {
         String outputFileName = args[1];
         int n = Integer.parseInt(args[2]);
         run(inputFileName,outputFileName,n,args.length==4);
-//        lib.createAndUploadS3Bucket(jarsBucket,"manager.jar",new File("jars/manager.jar"));
-//        lib.createAndUploadS3Bucket(jarsBucket,"worker.jar",new File("jars/worker.jar"));
+//        lib.createS3Bucket("word-prediction");
+//        lib.createAndUploadS3Bucket("word-prediction","manager.jar",new File("../jars/manager.jar"));
+//        lib.createAndUploadS3Bucket(jarsBucket,"worker.jar",new File("../jars/worker.jar"));
     }
 
     private static void run(String inputFileName,String outputFileName, int n,boolean terminate) {
@@ -162,7 +163,7 @@ public class LocalApplication {
     }
 
     private static void htmlFileResult(List<String> results,String outputFileName) throws IOException {
-        File f = new File(outputFileName);
+        File f = new File(outputFileName+".html");
         BufferedWriter bw = new BufferedWriter(new FileWriter(f));
         bw.write("<html><body><h1>resultFile</h1>");
         int i = 0;

@@ -7,6 +7,7 @@ manager/src/main/java/META-INF/
 .idea
 ass1Dos1.iml
 target
+submission/
 
 # Log file
 *.log

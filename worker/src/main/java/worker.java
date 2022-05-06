@@ -29,7 +29,8 @@ public class worker {
     private final static String workersInQueueName = "workers-in-queue.fifo";
     private final static String workersOutQueueName = "workers-out-queue.fifo";
 
-
+    private  static String workersInQueueUrl=null;
+    private  static String workersOutQueueUrl=null;
 
     private final static AwsLib lib = AwsLib.getInstance();
     private static Message startMessage ;
@@ -40,11 +41,31 @@ public class worker {
 
     @SuppressWarnings("InfiniteLoopStatement")
     public static void main(String[] args){
-        String workersInQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersInQueueName);
-        String workersOutQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersOutQueueName);
+         workersInQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersInQueueName);
+         workersOutQueueUrl = lib.sqsCreateAndGetQueueUrlFromName(workersOutQueueName);
            while (true) {
             run(workersInQueueUrl,workersOutQueueUrl);
         }
+
+//        String Qurl=lib.sqsCreateAndGetQueueUrlFromName("amir-tries-to-delete.fifo");
+//        lib.sqsSendMessage(Qurl,"i really want to delete this","matters1","matters1");
+//        System.out.println("sleep");
+//        while (true){
+//            startMessage = lib.sqsGetMessageFromQueue(Qurl);
+//            if(startMessage!=null)
+//                break;
+//            try {
+//                Thread.sleep(100);
+//            } catch (InterruptedException ignored) {
+//            }
+//        }
+//        lib.changeVisibility(startMessage,Qurl,120);
+//
+//        System.out.println("found message:\""+startMessage.body()+"\"");
+//        lib.sqsDeleteMessage(Qurl,startMessage);
+//        System.out.println("pls work");
+//        System.exit(0);
+
     }
 
     private static void run( String workersInQueueUrl, String workersOutQueueUrl) {
@@ -89,7 +110,7 @@ public class worker {
         try {
             lib.createAndUploadS3Bucket(workersResultsBucketName, workersResultsKey+nameOfTheFile, new File(convertedFolder+"\\"+nameOfTheFile + format));
         }catch (Exception e){
-            sendErrorMsg(workersOutQueueUrl,e.getMessage());
+            sendErrorMsg(e.getMessage());
             return;
         }
         //▪ Put a message in an SQS queue indicating the original URL of the PDF, the S3 url of the new
@@ -111,10 +132,10 @@ public class worker {
             try (InputStream in = connection.getInputStream()) {
                 Files.copy(in, Paths.get(name), StandardCopyOption.REPLACE_EXISTING);
             } catch (Exception e) {
-                sendErrorMsg(queueUrl,e.getMessage());
+                sendErrorMsg(e.getMessage());
             }
         }catch(Exception e){
-            sendErrorMsg(queueUrl,e.getMessage());
+            sendErrorMsg(e.getMessage());
         }
     }
 
@@ -128,7 +149,7 @@ public class worker {
         } catch (IOException e) {
             //send a message to the manager
             System.out.println("loadPDF failed: "+fileName+" "+ e.getMessage());
-            sendErrorMsg(queueUrl,e.getMessage());
+            sendErrorMsg(e.getMessage());
             return null;
         }
         PDDocument toConvert= new PDDocument();
@@ -165,7 +186,7 @@ public class worker {
             myWriter.close();
         } catch (IOException e) {
             //send a message to the manager
-            sendErrorMsg(queueUrl,e.getMessage());
+            sendErrorMsg(e.getMessage());
 
             return null;
         }
@@ -184,7 +205,7 @@ public class worker {
             }
         }catch (IOException e){
             //send a message to the manager
-            sendErrorMsg(queueUrl,e.getMessage());
+            sendErrorMsg(e.getMessage());
 
             return null;
 
@@ -201,7 +222,7 @@ public class worker {
             bim = pdfRenderer.renderImageWithDPI(page, 300, ImageType.RGB);
         } catch (IOException e) {
             //send a message to the manager
-            sendErrorMsg(queueUrl,e.getMessage());
+            sendErrorMsg(e.getMessage());
             return null;
         }
 
@@ -209,25 +230,25 @@ public class worker {
             ImageIOUtil.writeImage(bim, destinationFolder+"\\"+fileName + ".png", 300);
         } catch (IOException e) {
             //send a message to the manager
-            sendErrorMsg(queueUrl,e.getMessage());
+            sendErrorMsg(e.getMessage());
             return null;
         }
         try {
             document.close();
         } catch (IOException e) {
             //send a message to the manager
-            sendErrorMsg(queueUrl,e.getMessage());
+            sendErrorMsg(e.getMessage());
             return null;
         }
         return ".png";
 
     }
 
-    private static void sendErrorMsg(String queueUrl,String errorMsg){
+    private static void sendErrorMsg(String errorMsg){
         System.out.println(errorMsg);
-        lib.sqsSendMessage(queueUrl,outputQueue+
+        lib.sqsSendMessage(workersOutQueueUrl,outputQueue+
                 '\t'+pdfUrlInputFile+'\t'+"error"+'\t'+errorMsg+'\t'+operation,outputQueue+ LocalDateTime.now(),outputQueue+ LocalDateTime.now() );
-        lib.sqsDeleteMessage(queueUrl, startMessage);
+        lib.sqsDeleteMessage(workersInQueueUrl, startMessage);
     }
 
 }

@@ -114,6 +114,21 @@ public class AwsLib {
     }
 
     //s3
+    public void createS3Bucket( String bucketName){
+        try {
+            software.amazon.awssdk.regions.Region region = Region.US_EAST_1;
+            s3.createBucket(CreateBucketRequest
+                    .builder()
+                    .bucket(bucketName)
+                    .createBucketConfiguration(
+                            CreateBucketConfiguration.builder()
+                                    .build())
+                    .build());
+        }
+        catch (Exception e){
+                System.out.println("createAndUploadS3Bucket bucket: "+ bucketName +" "+e.getMessage());
+            }
+    }
     public void createAndUploadS3Bucket( String bucketName,String key, File file){
         try{
             software.amazon.awssdk.regions.Region region = Region.US_EAST_1;
@@ -130,7 +145,7 @@ public class AwsLib {
                     RequestBody.fromFile(file));
         }
         catch (Exception e){
-            System.out.println("createAndUploadS3Bucket bucket:"+ bucketName +"key "+ key +"file"+file.getName()+ e.getMessage());
+            System.out.println("createAndUploadS3Bucket bucket: "+ bucketName +" key: "+ key +" file "+file.getName()+"\n" +e.getMessage());
         }
     }
 
