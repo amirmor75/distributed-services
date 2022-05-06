@@ -1,7 +1,5 @@
-# ass1Dos1
-assignment 1 for distributed operating systems 1 course 4th year 1st semester 
-Amir Mor, id 322521642
-Shelly Talis, id 322931510
+# distributed services
+Amir Mor
 
 How to run our project:
 open cmd on the working directory and run the following command- "java -jar application.jar <inputFileName>  <outputFileName> <n>".
